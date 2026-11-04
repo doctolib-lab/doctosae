@@ -1,0 +1,4 @@
+# Lint settings of the annotation app, picked up by `ruff check annotation_app` from the repository root.
+line-length = 110
+target-version = "py311"
+src = ["."]  # cases, config and storage are first party modules of this folder

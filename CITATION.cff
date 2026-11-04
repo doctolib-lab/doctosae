@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use MedSAE, please cite the paper below."
+title: "MedSAE: sparse autoencoders for interpretable medical retrieval"
+type: software
+license: Apache-2.0
+repository-code: "https://github.com/doctolib-lab/medsae"
+version: 0.1.0
+authors:
+  - family-names: Brison
+    given-names: Gaëtan
+  - family-names: Bouchacourt
+    given-names: Diane
+preferred-citation:
+  type: conference-paper
+  title: "Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders"
+  authors:
+    - family-names: Brison
+      given-names: Gaëtan
+    - family-names: Bouchacourt
+      given-names: Diane
+  collection-title: "Machine Learning for Health (ML4H)"
+  year: 2026

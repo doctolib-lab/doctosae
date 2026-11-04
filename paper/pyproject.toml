@@ -1,0 +1,30 @@
+[project]
+name = "sae-training-on-embeddings"
+version = "0.1.0"
+description = "Code behind the numbers of the ML4H 2026 paper Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{ name = "Gaëtan Brison" }, { name = "Diane Bouchacourt" }]
+requires-python = ">=3.12"
+dependencies = [
+    "datasets",
+    "google-cloud-aiplatform",
+    "langchain-core",
+    "langchain-openai",
+    "numpy",
+    "pandas",
+    "pydantic",
+    "scikit-learn",
+    "sentence-transformers",
+    "torch",
+    "matplotlib>=3.10.9",
+    "python-dotenv",
+    "accelerate>=1.14.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]

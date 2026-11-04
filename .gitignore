@@ -29,7 +29,7 @@ env/
 *service_account*.json
 *credentials*.json
 gcp-*.json
-# cloud key files keep their download name, <project id>-<12 hex digits>.json
+# cloud key files keep their download name: the project id, then 12 hex digits, then .json
 *-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
 # no JSON file is versioned at the root or at the top of the package
 /*.json
@@ -41,7 +41,7 @@ gcp-*.json
 /paper/data/
 /package/data/
 runs/
-logs/
+/logs/
 outputs/
 cache/
 .medsae_cache/
