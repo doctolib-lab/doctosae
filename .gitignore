@@ -41,7 +41,7 @@ gcp-*.json
 /paper/data/
 /package/data/
 runs/
-logs/
+/logs/
 outputs/
 cache/
 .medsae_cache/
