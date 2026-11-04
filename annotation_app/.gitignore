@@ -1,0 +1,12 @@
+# secrets and local answers never go to git
+.streamlit/secrets.toml
+*.csv
+# key files dropped next to the app
+/*.json
+# real cases, interpretability outputs and review files built locally; only the synthetic example is versioned
+data/*
+!data/example_cases.json
+features/
+/*.md
+!/README.md
+__pycache__/
