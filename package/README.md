@@ -4,7 +4,7 @@
 2026 paper *Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders* (Gaëtan Brison and
 Diane Bouchacourt).
 
-![MedSAE overview](https://raw.githubusercontent.com/doctolib-lab/medsae/main/.github/assets/medsae_overview.png)
+![MedSAE overview](../.github/assets/medsae_overview.png)
 
 MedSAE trains a TopK sparse autoencoder (SAE) on the frozen embeddings of a text encoder, with a reconstruction loss
 and an InfoNCE loss that keeps queries close to their relevant documents. Documents are then ranked by cosine
