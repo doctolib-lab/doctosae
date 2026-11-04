@@ -83,6 +83,26 @@ def test_annotator_names_are_protected_too(tmp_path):
     assert store.load_answers("=A3") == {"C01": {"score": 2, "comment": ""}}
 
 
+def test_rows_of_another_cases_file_never_count(tmp_path):
+    store = CsvStore(tmp_path / "answers.csv")
+    answer(store, 4, case={"case_id": "C01", "rank": 1, "feature_id": 101})  # the demo, or an earlier build
+    answer(store, 2, case={"case_id": "C02", "rank": 2, "feature_id": 2002})
+    current = {"C01": "2001", "C02": "2002"}
+    assert store.load_answers("A1", current) == {"C02": {"score": 2, "comment": ""}}
+    assert set(store.load_answers("A1")) == {"C01", "C02"}  # without a mapping every row counts
+
+
+def test_a_row_cut_short_stays_a_row_of_its_own(tmp_path):
+    store = CsvStore(tmp_path / "answers.csv")
+    answer(store, 3)
+    with store.path.open("a", encoding="utf-8") as f:
+        f.write("2026-11-04 10:00:00,A2,C02,2,7,1,")  # a write killed half way, no line ending
+    answer(store, 4, annotator="A3", case={"case_id": "C03", "rank": 3, "feature_id": 9})
+    assert store.load_answers("A3") == {"C03": {"score": 4, "comment": ""}}
+    assert store.load_answers("A2") == {}
+    assert store.annotators() == ["A1", "A2", "A3"]
+
+
 def test_a_file_with_other_columns_is_refused(tmp_path):
     path = tmp_path / "answers.csv"
     path.write_text("a,b,c\n1,2,3\n", encoding="utf-8")
@@ -154,6 +174,9 @@ class FakeWorksheet:
 
     def row_values(self, index: int) -> list[str]:
         return self.rows[index - 1] if len(self.rows) >= index else []
+
+    def col_values(self, index: int) -> list[str]:
+        return [row[index - 1] for row in self.rows if len(row) >= index]
 
     def update(self, range_name: str, values: list[list[str]]) -> None:
         assert range_name == "A1"
@@ -248,13 +271,23 @@ def test_sheets_store_uses_the_key_file_without_a_secrets_table(google):
     assert google.credentials[:2] == ("file", "/outside/key.json")
 
 
-def test_sheets_store_rewrites_a_wrong_header(google, fake_secrets):
+def test_sheets_store_refuses_a_tab_holding_other_data(google, fake_secrets):
     fake_secrets["gcp_service_account"] = {"project_id": "example"}
     google.tabs["annotations"] = FakeWorksheet()
-    google.tabs["annotations"].rows = [["old", "header"]]
-    SheetsStore("1AbC", "annotations").load_answers("A1")
-    assert google.tabs["annotations"].rows[0] == HEADERS
-    assert google.created == []
+    google.tabs["annotations"].rows = [["old", "header"], ["kept", "as is"]]
+    with pytest.raises(StorageConfigError, match="WORKSHEET_NAME") as error:
+        SheetsStore("1AbC", "annotations").load_answers("A1")
+    assert "1AbC" not in str(error.value)
+    assert google.tabs["annotations"].rows[0] == ["old", "header"] and google.created == []
+
+
+def test_sheets_store_upgrades_the_header_of_an_earlier_version(google, fake_secrets):
+    fake_secrets["gcp_service_account"] = {"project_id": "example"}
+    google.tabs["annotations"] = FakeWorksheet()
+    google.tabs["annotations"].rows = [HEADERS[:-1], ["t", "A1", "C01", "3", "101", "1", "", "1", "s1", "2"]]
+    store = SheetsStore("1AbC", "annotations")
+    assert store.load_answers("A1") == {"C01": {"score": 2, "comment": ""}}
+    assert google.tabs["annotations"].rows[0] == HEADERS and store.annotators() == ["A1"]
 
 
 def test_missing_google_packages_give_an_install_hint(monkeypatch):

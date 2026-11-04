@@ -244,9 +244,11 @@ def _add_embed(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
         "embed",
         "embed a dataset with a frozen text encoder",
         "Embed the corpus and the queries of every split (medsae.Embedder.embed_dataset) and save the arrays "
-        "(medsae.EmbeddedDataset.save). Queries get the instruction the paper used for that model unless "
-        "--query-instruction says otherwise. gemini-embedding-001 goes through medsae.embed.GeminiEmbedder, "
-        'with the Google Cloud credentials of the environment (pip install "medsae[gemini]").',
+        "with the encoder settings (medsae.EmbeddedDataset.save). Queries of the BGE v1.5 models get the "
+        "retrieval instruction of their model card, the one the paper used for BGE large, and other models "
+        "none, unless --query-instruction says otherwise. gemini-embedding-001 goes through "
+        "medsae.embed.GeminiEmbedder, with the Google Cloud credentials of the environment (pip install "
+        '"medsae[gemini]").',
         "medsae embed --dataset nfcorpus --model BAAI/bge-small-en-v1.5 --output runs/nfcorpus/embeddings\n"
         "medsae embed --dataset r2med_biology --sae runs/nfcorpus/sae --output runs/r2med_biology/embeddings",
     )
@@ -936,7 +938,9 @@ def _add_llm_arguments(parser: argparse.ArgumentParser) -> None:
         "model, accept its terms on the Hub and run `hf auth login`)",
     )
     group.add_argument(
-        "--base-url", help="URL of the OpenAI compatible server, such as a vLLM or Ollama endpoint"
+        "--base-url",
+        help="URL of the OpenAI compatible server the texts are sent to, such as a vLLM or Ollama endpoint; "
+        "required with --llm openai unless OPENAI_BASE_URL is set (https://api.openai.com/v1 for OpenAI)",
     )
     group.add_argument(
         "--api-key-env",

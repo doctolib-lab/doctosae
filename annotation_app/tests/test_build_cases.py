@@ -273,6 +273,18 @@ def test_medsae_outputs(tmp_path):
                                                          "description, synthetic)")
 
 
+def test_failed_requests_of_medsae_are_dropped_like_parse_errors(tmp_path):
+    cards, scores = medsae_outputs(tmp_path)
+    report = json.loads(scores.read_text(encoding="utf-8"))
+    failed = dict(judged(3, 9, True, 0.5), error="TimeoutError: read timeout")  # score 0.5, parse_error False
+    report["predictions"]["llm"].append(failed)
+    scores.write_text(json.dumps(report), encoding="utf-8")
+    inputs = build_cases.load_medsae(cards, scores)
+    assert inputs.pairs[-1]["parse_error"] and math.isnan(inputs.pairs[-1]["probability"])
+    ranked = build_cases.rank_features(inputs, top=60)
+    assert all(p["row"] != 9 for f in ranked for p in f["pairs"])
+
+
 def test_medsae_scores_without_the_llm_method_are_refused(tmp_path):
     with pytest.raises(build_cases.BuildError, match="no scores of Interpreter LLM descriptions"):
         build_cases.load_medsae(*medsae_outputs(tmp_path, methods=("tfidf",)))
@@ -298,6 +310,15 @@ def test_case_id_width_follows_the_number_of_cases():
 def test_too_few_positives_is_a_clear_error():
     with pytest.raises(build_cases.BuildError, match="need 3 positive and 3 negative passages"):
         build_cases.sample_cases(drawn_features(2, 10), n_cases=6, seed=42)
+
+
+def test_too_few_described_features_ask_for_more_features(tmp_path, capsys):
+    cards, scores = medsae_outputs(tmp_path)  # 8 usable features, below the default --top 60
+    with pytest.raises(SystemExit) as exit_info:
+        build_cases.main(["--cards", str(cards), "--scores", str(scores), "--out", str(tmp_path / "c.json")])
+    assert exit_info.value.code == 1
+    err = capsys.readouterr().err
+    assert "only 8 features" in err and "medsae interpret" in err and "raise --top" not in err
 
 
 @pytest.mark.parametrize("argv", [

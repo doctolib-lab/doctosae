@@ -33,7 +33,8 @@ def _grades(gains: np.ndarray, doc_ids: list[str]) -> dict[str, int]:
     return {doc: int(grade) for doc, grade in zip(doc_ids, gains, strict=True) if grade != 0}
 
 
-# Oracle values computed with sklearn.metrics.ndcg_score (data and evaluation spec, section 5.5).
+# Oracle values computed with sklearn.metrics.ndcg_score at k = 10 (linear gains, ties averaged, ideal DCG
+# over the full pool), the function that ndcg_at_k in paper/src/utils/metrics/ir.py calls.
 
 
 def _tie_with_zero_tail():

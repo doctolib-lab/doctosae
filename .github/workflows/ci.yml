@@ -38,13 +38,45 @@ jobs:
         run: python -m pip install -e ".[dev,llm]"
       - name: Lint
         run: ruff check src tests examples
+      - name: Format
+        run: ruff format --check src tests examples
       - name: Test
         run: pytest -m "not network" --cov=medsae --cov-report=term-missing
       - name: Build the sdist and wheel
         run: python -m build
 
-  paper-and-app:
-    name: paper code and annotation app
+  annotation-app:
+    name: annotation app (Python ${{ matrix.python-version }}, Streamlit ${{ matrix.streamlit }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.12"
+            streamlit: latest
+          - python-version: "3.11"
+            streamlit: "1.48.0"  # the floor of annotation_app/requirements.txt
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: annotation_app/requirements.txt
+      - name: Install the app requirements
+        run: python -m pip install -r annotation_app/requirements.txt pytest ruff
+      - name: Install the oldest supported Streamlit
+        if: matrix.streamlit != 'latest'
+        run: python -m pip install "streamlit==${{ matrix.streamlit }}"
+      - name: Lint
+        run: ruff check annotation_app
+      - name: Test
+        run: pytest annotation_app/tests
+
+  paper-and-keys:
+    name: paper code and key material
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -55,3 +87,8 @@ jobs:
           python-version: "3.12"
       - name: Byte compile
         run: python -m compileall -q paper/src annotation_app
+      - name: No key material in tracked files
+        run: |
+          if git grep -n -I -E '"private_key"|"type": *"service_account"|BEGIN [A-Z ]*PRIVATE KEY' -- ':!.github/workflows/*'; then
+            echo "key material found"; exit 1
+          fi

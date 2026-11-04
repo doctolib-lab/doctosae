@@ -32,7 +32,7 @@ Tests that download datasets or models from the Hugging Face Hub are marked `net
 them, and a plain `pytest` runs them. Run them alone with `pytest -m network`; the CURE and MIRIAD tests also need
 `MEDSAE_LARGE_DOWNLOADS=1` (about 300 MB to download each).
 
-Changes to the annotation app run its own checks from the repository root:
+For changes to the annotation app, run its own checks from the repository root:
 
 ```bash
 pip install -r annotation_app/requirements.txt pytest ruff

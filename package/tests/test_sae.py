@@ -169,7 +169,7 @@ def test_model_card_text_carries_the_terms_of_the_training_data():
     assert "cure (`clinia/CUREv1`), license `cc-by-nc-4.0`" in card and "Clinia" in card
     assert "noncommercial" in card and "## Responsible use" in card and "clinical decision" in card
     assert "Paper:" not in card and "More Information Needed" not in card
-    local = _sae(embedder="/home/someone/models/bge").generate_model_card()
+    local = _sae(embedder="./models/bge").generate_model_card()
     assert local.data.base_model is None and "a text encoder" in str(local)
 
 

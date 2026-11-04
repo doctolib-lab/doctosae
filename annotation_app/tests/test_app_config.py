@@ -19,7 +19,7 @@ def test_defaults_without_any_configuration(monkeypatch):
     assert settings.annotators == ()
     assert settings.cases_file == config.EXAMPLE_CASES and settings.demo
     storage = settings.storage
-    assert (storage.mode, storage.answers_csv) == ("auto", ROOT / "answers.csv")
+    assert (storage.mode, storage.answers_csv) == ("auto", ROOT / "answers_demo.csv")  # demo answers apart
     assert (storage.spreadsheet_id, storage.worksheet_name) == ("", "annotations")
     assert not storage.has_credentials
 
@@ -55,7 +55,7 @@ def test_blank_values_fall_back_to_defaults(monkeypatch):
     assert settings.app_title == config.DEFAULT_TITLE
     assert settings.storage.mode == "auto" and settings.storage.worksheet_name == "annotations"
     assert settings.cases_file == config.EXAMPLE_CASES
-    assert settings.storage.answers_csv == ROOT / "answers.csv"
+    assert settings.storage.answers_csv == ROOT / "answers_demo.csv"
 
 
 def test_password_is_kept_as_typed_and_out_of_repr(monkeypatch):
@@ -78,8 +78,10 @@ def test_built_cases_replace_the_examples(monkeypatch, tmp_path):
     built = tmp_path / "cases.json"
     built.write_text("[]", encoding="utf-8")
     monkeypatch.setattr(config, "BUILT_CASES", built)
+    monkeypatch.delenv("ANSWERS_CSV")
     settings = load_settings()
     assert settings.cases_file == built and not settings.demo
+    assert settings.storage.answers_csv == ROOT / "answers.csv"  # a real study keeps the study file
 
 
 def test_service_account_table(fake_secrets):
@@ -110,21 +112,25 @@ def test_as_list():
 class _SecretsError:
     """A st.secrets stand in whose first access raises like Streamlit does."""
 
-    def __init__(self, error_id: str | None) -> None:
+    def __init__(self, error_id: str | None, cause: Exception | None = None) -> None:
         self.error_id = error_id
+        self.cause = cause
 
     def keys(self):
         error = FileNotFoundError("secrets")
-        error.error_id = self.error_id
-        raise error
+        if self.error_id is not None:
+            error.error_id = self.error_id
+        raise error from self.cause
 
 
 def test_only_a_missing_secrets_file_means_no_secrets():
     assert config._available(_SecretsError("no-secrets-found")) == {}
-    assert config._available(_SecretsError(None)) == {}  # versions without error ids
+    assert config._available(_SecretsError(None)) == {}  # versions without error ids: no cause, no file
     assert config._available({"A": 1}) == {"A": 1}
     with pytest.raises(SettingsError, match="cannot read the Streamlit secrets"):
         config._available(_SecretsError("failed-parsing-secrets-file"))
+    with pytest.raises(SettingsError, match="cannot read the Streamlit secrets"):  # before Streamlit 1.63
+        config._available(_SecretsError(None, cause=ValueError("Unterminated string")))
 
 
 def test_streamlit_secrets_files(monkeypatch, tmp_path):

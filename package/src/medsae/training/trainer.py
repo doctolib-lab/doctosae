@@ -215,8 +215,9 @@ class Trainer:
         device = resolve_device(cfg.device)
         sae = self.sae.to(device)
         _match_embedder(sae, data)
-        lineage = _lineage(sae, data.dataset)
         run = _Run.prepare(data, train_split, val_split, cfg)
+        # Metadata fixed for the whole run, written at every save: provenance and the shareable encoder id.
+        lineage = _lineage(sae, data.dataset) | {"embedder": _recorded_embedder(data.embedder)}
 
         if not sae.b_pre.detach().any():
             # Training rows in corpus order, then training queries: the median's subsample matches the paper.
@@ -269,9 +270,8 @@ class Trainer:
                         record["seconds"] = round(time.perf_counter() - started, 3)
                         self.history.append(record)
                         value = record[SELECTION_METRIC]
-                        if (
-                            value is not None and value > best_value
-                        ):  # strictly better: the first best step wins
+                        # Strictly better: the first best step wins.
+                        if value is not None and value > best_value:
                             best_value, best_state = value, _cpu_state(sae)
                             self.best_metric, self.best_step = value, step
                             if self.output_dir is not None:
@@ -374,12 +374,11 @@ class Trainer:
         dataset, cfg = data.dataset, self.config
         best = None if math.isnan(self.best_metric) else float(self.best_metric)
         selection_split = run.selection[0] if run.selection is not None else None
-        embedder = _recorded_embedder(data.embedder)
+        embedder = lineage["embedder"]
         sae.metadata.update(
             {
                 **lineage,
                 "train_dataset": dataset.name,
-                "embedder": embedder,
                 "training": {
                     **cfg.hyperparameters(),
                     "train_split": run.train_split,

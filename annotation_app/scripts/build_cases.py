@@ -159,13 +159,14 @@ def _description(record: dict) -> tuple[int, dict]:
 
 
 def _pair(record: dict) -> dict:
-    parse_error = bool(record.get("parse_error"))
+    # medsae records a failed request as an `error` record; like an unparsed reply, it carries no judgment
+    parse_error = bool(record.get("parse_error")) or bool(record.get("error"))
     return {
         "feature": _feature_id(record),
         "row": record.get("row"),
         "text": str(record.get("text") or ""),
         "ground_truth": bool(record["ground_truth"]),
-        # 0.5 is recorded for a reply that could not be parsed; such pairs are dropped anyway
+        # 0.5 is recorded for a reply that could not be parsed or a failed request; such pairs are dropped anyway
         "probability": math.nan if parse_error else float(record["score"]),
         "parse_error": parse_error,
         "source": record.get("source"),

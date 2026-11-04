@@ -1,7 +1,8 @@
 # MedSAE annotation app
 
-The Streamlit app behind the clinician study of *Explanations that Transfer: Interpreting Medical Retrieval with
-Sparse AutoEncoders*. See the [repository README](../README.md) for the paper and the `medsae` package.
+A Streamlit app to collect clinician judgments of the feature descriptions of *Explanations that Transfer:
+Interpreting Medical Retrieval with Sparse AutoEncoders*. See the [repository README](../README.md) for the paper and
+the `medsae` package.
 
 ## What the study measures
 
@@ -33,8 +34,9 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-With no configuration the app runs in demo mode on the six synthetic cases of `data/example_cases.json` and
-writes answers to `answers.csv` next to `streamlit_app.py`.
+With no configuration the app runs in demo mode on the six synthetic cases of `data/example_cases.json` (ids
+`X01` to `X06`) and writes answers to `answers_demo.csv` next to `streamlit_app.py`, so that demo clicks never mix
+with the answers of a real study.
 
 ## Configuration
 
@@ -47,11 +49,11 @@ the secrets value wins, because Streamlit copies top level secrets into the envi
 | `APP_TITLE` | `MedSAE feature annotation` | page title and headings |
 | `STUDY_NAME` | empty | adds "Thank you for helping with {STUDY_NAME}." to the introduction |
 | `APP_PASSWORD` | empty | when set, a shared access code screen comes first |
-| `ANNOTATORS` | empty | names or codes offered in a picker (a TOML list, or comma separated in the environment); empty means a free text field |
+| `ANNOTATORS` | empty | names or codes offered in a picker (a TOML list, or comma separated in the environment); empty means a free text field, recommended only for trials |
 | `CONTACT_EMAIL` | empty | contact shown in the sidebar and in error messages; hidden when empty |
 | `CASES_FILE` | `data/cases.json` if it exists, else `data/example_cases.json` | cases to annotate; relative paths start from this folder |
 | `STORAGE` | `auto` | `auto`, `csv` or `sheets`, see below |
-| `ANSWERS_CSV` | `answers.csv` | CSV file used in csv mode; relative paths start from this folder |
+| `ANSWERS_CSV` | `answers.csv` (`answers_demo.csv` in demo mode) | CSV file used in csv mode; relative paths start from this folder |
 | `SPREADSHEET_ID` | empty | Google Sheet that receives the answers in sheets mode |
 | `WORKSHEET_NAME` | `annotations` | tab of that sheet, created when missing |
 | `[gcp_service_account]` | absent | service account key fields, secrets only |
@@ -77,7 +79,9 @@ token_uri = "https://oauth2.googleapis.com/token"
 ## Storage
 
 * `csv` mode appends one row per click to `ANSWERS_CSV`. It suits one machine and one Streamlit process.
-* `sheets` mode appends the same row to a Google Sheet, as raw values that are never parsed as formulas.
+* `sheets` mode appends the same row to a Google Sheet, as raw values that are never parsed as formulas. The tab
+  named by `WORKSHEET_NAME` is created when missing; an existing tab whose first row is not the answers header is
+  refused, never overwritten.
 * `auto` (the default) uses the Google Sheet when `SPREADSHEET_ID` is set and the local CSV file otherwise. A
   `SPREADSHEET_ID` without credentials, or `STORAGE = "sheets"` without both, stops the app with an error
   instead of silently writing somewhere else.
@@ -97,17 +101,23 @@ The sidebar tells annotators where answers go ("local CSV file" or "Google Sheet
 ## Build real cases
 
 `scripts/build_cases.py` turns interpretability outputs into `data/cases.json`, which the app then picks up on
-its own (the file is ignored by git). It imports neither streamlit nor `medsae`. Give exactly one input:
+its own. It imports neither streamlit nor `medsae`. Keep its inputs and outputs under `data/` as below: that folder
+is ignored by git, and so are `features/` and Markdown files at the root of this folder, because they hold corpus
+passages and LLM outputs that this code only release must not carry. Give exactly one input:
 
 ```bash
-# outputs of the medsae package: medsae interpret --llm ... --score --output features
-python scripts/build_cases.py --cards features/cards.json --scores features/scores.json
+# outputs of the medsae package: medsae interpret --llm ... --score --output data/features
+python scripts/build_cases.py --cards data/features/cards.json --scores data/features/scores.json
 # outputs of the paper code (paper/scripts/run_interpretability_pipeline.sh)
 python scripts/build_cases.py --labels RUN/interpretation/labels.json \
     --predictions RUN/interpretation/pred_binary_llm.json
-# a Markdown review file, for example one written earlier with --markdown
-python scripts/build_cases.py --from-markdown top60.md
+# a Markdown review file, for example one written earlier with --markdown data/top60.md
+python scripts/build_cases.py --from-markdown data/top60.md
 ```
+
+Each feature gives one case, with a passage whose label is drawn at random, so the default 30 balanced cases need
+well over 30 features that have a description and judged passages of both labels. Run `medsae interpret` without
+`--n-features`, or with 60 or more.
 
 Shared options: `--top 60` features kept by r, `--n-cases 30` cases drawn, `--seed 42`, `--max-chars 300`
 characters shown per passage, `--out data/cases.json`, `--dataset NAME` for the review file title, and
@@ -118,7 +128,7 @@ With the medsae or paper inputs the script
 1. keeps only the scores of the Interpreter LLM descriptions (`llm`) and refuses the shuffled description
    control;
 2. drops features whose label failed (`LABEL_ERROR`, `PARSE_ERROR`) or whose description is empty, pairs the
-   judge could not parse, and features judged on a single label;
+   judge could not parse or whose request failed, and features judged on a single label;
 3. ranks features by the Pearson r between the judge's probability and the ground truth (the stored value when
    the scores file has one, else computed as the paper does), ties broken by feature id, and keeps `--top`;
 4. picks one judged passage per feature, positive or negative at random, and cuts it at `--max-chars`;
@@ -131,13 +141,13 @@ Input contracts:
   `FeatureCard.to_dict()`; the fields used are `feature`, `topic`, `description` and `keywords`.
 * `--scores`: the `scores.json` of `medsae interpret --score` (`ScoreReport.to_dict()`). It must include the
   `llm` method: the records of `predictions["llm"]` (`feature`, `row`, `source`, `text`, `ground_truth`,
-  `score`, `parse_error`) are the judged pairs, and `per_feature["llm"]` gives the stored r.
+  `score`, `parse_error`, and `error` for a failed request) are the judged pairs, and `per_feature["llm"]` gives
+  the stored r.
 * `--labels` and `--predictions`: the `labels.json` of `label_neurons.py` and the `pred_binary_llm.json` of
   `predict_neurons_binary.py`, unchanged.
-* `--from-markdown`: rank, feature, description and label are read from the file; the draw is the same as step 5.
-  On the review file of the paper study (top 60 features by r for BGE, k = 64, 3072 features, CURE passages),
-  the defaults reproduce the 30 study cases exactly. That file and the study cases are not part of this
-  release, which ships code only.
+* `--from-markdown`: rank, feature, description and label are read from the file; the draw is the same as step 5,
+  so the same file and seed always give the same cases. Review files and cases are not part of this release,
+  which ships code only.
 
 Each case of the output holds `rank`, `feature_id`, `judge_input` (the exact text the judge read), `topic`,
 `description`, `keywords`, `passage`, `ground_truth` (never shown) and `case_id`, plus `truncated`, `feature_r`,
@@ -161,8 +171,12 @@ Each click appends one row with these columns:
 | `score` | 1 to 4 |
 
 When an annotator comes back, the app reads their rows, restores the counter and jumps to the first unanswered
-case. Changing an answer appends a new row, so for analysis keep the latest row per (annotator, case_id). The
-ground truth is not stored with the answers: join on `case_id` with the cases file. In the CSV file a cell that
+case. With the free text field, a name typed in another case or with other spaces is the annotator already
+stored. Only rows whose `feature_id` is the feature of the case today count, so the rows of another cases file
+with the same case ids never do; still, start a new answers file (or worksheet) whenever `data/cases.json` is
+rebuilt. Changing an answer appends a new row, so for analysis keep the latest row per (annotator, case_id). The
+ground truth is not stored with the answers: join on `case_id` and `feature_id` with the cases file. In the CSV
+file a cell that
 starts with `=`, `+`, `-`, `@`, a tab, a carriage return or an apostrophe gets one more leading apostrophe, so
 that spreadsheet programs never run it as a formula; remove one leading apostrophe when analysing.
 
@@ -175,8 +189,9 @@ answers = pd.read_csv("answers.csv", dtype=str, keep_default_na=False)
 answers = answers.apply(lambda column: column.str.replace(r"^'", "", regex=True))
 answers = answers[answers["score"].isin(["1", "2", "3", "4"])]
 latest = answers.groupby(["annotator", "case_id"]).tail(1)
-cases = pd.DataFrame(json.load(open("data/cases.json", encoding="utf-8")))
-table = latest.merge(cases.filter(["case_id", "ground_truth", "judge_probability"]), on="case_id")
+cases = pd.DataFrame(json.load(open("data/cases.json", encoding="utf-8"))).astype({"feature_id": str})
+columns = ["case_id", "feature_id", "ground_truth", "judge_probability"]
+table = latest.merge(cases.filter(columns), on=["case_id", "feature_id"])
 ```
 
 ## Protocol notes
@@ -190,9 +205,11 @@ table = latest.merge(cases.filter(["case_id", "ground_truth", "judge_probability
 
 ## Privacy
 
-* Prefer annotator codes (A1, A2, ...) to names: what is typed or picked is stored in every row.
-* `answers.csv` holds personal data (annotator identifiers and free text comments). It is ignored by git; keep it
-  out of shared places.
+* Prefer annotator codes (A1, A2, ...) to names, set in `ANNOTATORS` for a real study: what is typed or picked is
+  stored in every row.
+* `answers.csv` holds personal data (annotator identifiers and free text comments). Every CSV file inside this
+  folder is ignored by git, but a real study should rather set `ANSWERS_CSV` to an absolute path outside the
+  repository, and keep the file out of shared places.
 * `APP_PASSWORD` is one code shared by all annotators. It keeps casual visitors out; it does not authenticate
   people.
 * Never commit `.streamlit/secrets.toml` or a service account key. JSON files at the root of this folder are

@@ -88,6 +88,32 @@ def test_answer_saved_on_click_then_resumed(tmp_path, monkeypatch):
     assert shown_case(at) == second  # resumes at the first unanswered case
 
 
+def test_demo_answers_never_count_for_the_cases_of_a_study(tmp_path, monkeypatch):
+    answers_csv = tmp_path / "answers.csv"
+    monkeypatch.setenv("ANSWERS_CSV", str(answers_csv))
+    at = start(run_app(), "A1")
+    button(at, "4 · Definitely yes").click().run()  # one demo answer
+    # A study whose case ids repeat the demo ones (another build of the same file name): other features.
+    study = [dict(case, feature_id=2000 + i) for i, case in enumerate(EXAMPLES, start=1)]
+    cases = tmp_path / "cases.json"
+    cases.write_text(json.dumps(study), encoding="utf-8")
+    monkeypatch.setenv("CASES_FILE", str(cases))
+    at = start(run_app(), "A1")
+    assert not at.exception
+    assert [p.proto.text for p in at.sidebar.get("progress")] == ["0 / 6 cases labeled"]
+
+
+def test_a_returning_annotator_is_found_whatever_the_case(tmp_path, monkeypatch):
+    monkeypatch.setenv("ANSWERS_CSV", str(tmp_path / "answers.csv"))
+    at = start(run_app(), "A1")
+    button(at, "2 · Probably not").click().run()
+    for typed in ("a1", " A1 "):
+        at = start(run_app(), typed)
+        assert not at.exception
+        assert at.sidebar.markdown[0].value == "**A1**"  # the stored spelling, and its order of cases
+        assert shown_case(at) == order_of("A1")[1]
+
+
 def test_all_cases_answered_shows_the_done_screen(tmp_path, monkeypatch):
     monkeypatch.setenv("ANSWERS_CSV", str(tmp_path / "answers.csv"))
     at = start(run_app(), "Dr Who")
