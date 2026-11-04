@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Environments
+.venv/
+venv/
+env/
+.python-version
+
+# Secrets and credentials: never commit them
+.env
+.env.*
+*.pem
+*.key
+.streamlit/secrets.toml
+**/.streamlit/secrets.toml
+*service-account*.json
+*service_account*.json
+*credentials*.json
+gcp-*.json
+# cloud key files keep their download name, <project id>-<12 hex digits>.json
+*-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
+# no JSON file is versioned at the root or at the top of the package
+/*.json
+/package/*.json
+
+# Data, embeddings, checkpoints and experiment outputs
+# (anchored: an unanchored "data/" would also hide the package/src/medsae/data subpackage)
+/data/
+/paper/data/
+/package/data/
+runs/
+logs/
+outputs/
+cache/
+.medsae_cache/
+*.pkl
+*.npy
+*.npz
+*.pt
+*.pth
+*.safetensors
+*.parquet
+wandb/
+
+# Annotation app local answers (annotator ids and comments)
+annotation_app/**/*.csv
+
+# Notebooks and OS noise
+.ipynb_checkpoints/
+.DS_Store
+.idea/
+.vscode/
