@@ -72,10 +72,25 @@ medsae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae 
 
 ## Pretrained sparse autoencoders
 
-Checkpoints trained on CURE are planned under the [`doctolib-lab`](https://huggingface.co/doctolib-lab)
-organisation, one repository per encoder and sparsity k, such as `doctolib-lab/medsae-bge-large-en-v1.5-k64`. None
-is published yet; `medsae pretrained` lists what is available. Weights trained on CURE are `cc-by-nc-4.0`
-(noncommercial), the license of CURE.
+The checkpoints of the paper, trained on CURE, are in the
+[MedSAE collection](https://huggingface.co/collections/doctolib-lab/medsae) of the Hugging Face Hub: one repository
+per encoder, one folder per configuration.
+
+| Encoder | Alias | Repository | Checkpoints |
+| --- | --- | --- | --- |
+| `BAAI/bge-large-en-v1.5` | `bge` | `doctolib-lab/medsae-bge-large-en-v1.5` | `k64_m3072`, `k256_m3072` |
+| `abhinand/MedEmbed-large-v0.1` | `medembed` | `doctolib-lab/medsae-medembed-large-v0.1` | `k64_m3072`, `k256_m3072` |
+| `gemini-embedding-001` | `gemini` | `doctolib-lab/medsae-gemini-embedding-001` | `k128_m9216`, `k256_m9216` |
+
+```python
+from medsae import load_pretrained
+
+sae = load_pretrained("bge", k=64)    # doctolib-lab/medsae-bge-large-en-v1.5/k64_m3072
+sae = load_pretrained("gemini")       # the smallest k: doctolib-lab/medsae-gemini-embedding-001/k128_m9216
+```
+
+The smallest k is the configuration the paper interprets, k = 256 the one that retrieves best. `medsae pretrained`
+lists every checkpoint id. Weights trained on CURE are `cc-by-nc-4.0` (noncommercial), the license of CURE.
 
 ## Results from the paper
 

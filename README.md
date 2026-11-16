@@ -40,10 +40,13 @@ fires on five unseen corpora, and they explain single retrievals: which concepts
 MedSAE needs Python 3.11 or newer and is tested on Linux and macOS. A GPU is advised for CURE (244,600
 passages); the small examples run on a laptop CPU.
 
-> [!NOTE]
-> `medsae` is not on PyPI yet: install it from source as below. Once the first release is uploaded,
-> `pip install medsae` will work too, with the extras `medsae[llm]` (LLM descriptions through any OpenAI
-> compatible server) and `medsae[local-llm]` (a local LLM such as `google/medgemma-4b-it`).
+```bash
+pip install medsae
+pip install "medsae[llm]"          # optional: LLM descriptions through any OpenAI compatible server
+pip install "medsae[local-llm]"    # optional: local LLM such as google/medgemma-4b-it
+```
+
+To work on the code, install it from source:
 
 ```bash
 git clone https://github.com/doctolib-lab/medsae.git
@@ -95,16 +98,15 @@ data.save("runs/nfcorpus/embeddings")   # reload later with EmbeddedDataset.load
 
 #### 3️⃣ Choose an SAE from the Hub, or create one 🎛️
 
-Each pretrained checkpoint is one Hub repository per encoder and sparsity k, so choosing k is choosing a
-repository. They are not published yet (see [04](#04-pretrained-sparse-autoencoders-)).
+The checkpoints of the paper are on the Hub, one repository per encoder and one folder per k (see
+[04](#04-pretrained-sparse-autoencoders-)).
 
 ```python
 import torch
 
-from medsae import MedSAE, load_pretrained, pretrained_repo_id
+from medsae import MedSAE, load_pretrained
 
-print(pretrained_repo_id("bge", k=64))  # doctolib-lab/medsae-bge-large-en-v1.5-k64
-# sae = load_pretrained("bge", k=64)    # once the checkpoints are published
+pretrained = load_pretrained("bge", k=64)  # doctolib-lab/medsae-bge-large-en-v1.5/k64_m3072
 
 # A new SAE with m = 3d features and k = 64 active ones, the setting of Tables 2 and 3 of the paper
 torch.manual_seed(42)                   # reproducible initial weights
@@ -200,38 +202,42 @@ medsae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae 
     --base-url http://localhost:8000/v1 --score --score-on r2med_biology   # LLM labels, scored out of domain
 medsae explain --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \
     --cards runs/nfcorpus/features/cards.json --query "..." --doc-a "..." --doc-b "..."
-medsae pretrained --embedder bge --k 64          # repository id of a pretrained checkpoint
+medsae pretrained --embedder bge --k 64          # id of a pretrained checkpoint
 medsae convert runs/paper/bge_k64 checkpoints/bge-k64 --embedder bge   # paper checkpoint to MedSAE folder
 medsae push checkpoints/bge-k64 my-org/medsae-bge-k64 --license cc-by-nc-4.0   # private unless --public
 ```
 
 ### 04 Pretrained sparse autoencoders 🤗
 
-> [!NOTE]
-> No checkpoint is published yet. The repositories below are the planned names; `medsae pretrained` lists what is
-> actually available.
+The checkpoints of the paper are in the [MedSAE collection](https://huggingface.co/collections/doctolib-lab/medsae)
+of the Hugging Face Hub, in the [`doctolib-lab`](https://huggingface.co/doctolib-lab) organisation: one repository
+per encoder, and in it one folder per configuration `k{k}_m{m}` (`sae.safetensors` and `cfg.json`, with the
+training settings and the CURE scores of that checkpoint). All are trained on CURE, seed 42.
 
-Checkpoints will live in the [`doctolib-lab`](https://huggingface.co/doctolib-lab) organisation of the Hugging
-Face Hub, one repository per encoder and sparsity k (`dense` means k equals the embedding dimension), each trained
-on CURE with the configuration selected in the paper.
-
-| Encoder | Alias | Planned repositories |
-| --- | --- | --- |
-| `BAAI/bge-large-en-v1.5` | `bge` | `doctolib-lab/medsae-bge-large-en-v1.5-k64`, `-k128`, `-k256`, `-k1024` (dense) |
-| `abhinand/MedEmbed-large-v0.1` | `medembed` | `doctolib-lab/medsae-medembed-large-v0.1-k64`, `-k128`, `-k256`, `-k1024` (dense) |
+| Encoder | Alias | Repository | Interpretability (Figure 1) | Retrieval |
+| --- | --- | --- | --- | --- |
+| `BAAI/bge-large-en-v1.5` | `bge` | [`doctolib-lab/medsae-bge-large-en-v1.5`](https://huggingface.co/doctolib-lab/medsae-bge-large-en-v1.5) | `k64_m3072` | `k256_m3072` |
+| `abhinand/MedEmbed-large-v0.1` | `medembed` | [`doctolib-lab/medsae-medembed-large-v0.1`](https://huggingface.co/doctolib-lab/medsae-medembed-large-v0.1) | `k64_m3072` | `k256_m3072` |
+| `gemini-embedding-001` | `gemini` | [`doctolib-lab/medsae-gemini-embedding-001`](https://huggingface.co/doctolib-lab/medsae-gemini-embedding-001) | `k128_m9216` | `k256_m9216` |
 
 ```python
-from medsae import load_pretrained
+from medsae import list_pretrained, load_pretrained
 
-sae = load_pretrained("bge", k=64)  # downloads doctolib-lab/medsae-bge-large-en-v1.5-k64
+print(list_pretrained())            # every checkpoint id, such as doctolib-lab/medsae-bge-large-en-v1.5/k64_m3072
+sae = load_pretrained("bge", k=64)  # k picks the folder; without k, the smallest one
+sae = load_pretrained(repo_id="doctolib-lab/medsae-bge-large-en-v1.5/k256_m3072")  # a full id, no listing
 ```
 
-Publishing a checkpoint takes one command, private by default so it can be reviewed before it goes public:
+Loaded checkpoints record their encoder and the query instruction the paper embedded with, so
+`Embedder.from_sae(sae)` rebuilds the matching encoder.
+
+Publishing your own checkpoint takes one command, private by default so it can be reviewed before it goes public.
+It writes a repository that `load_pretrained(repo_id=...)` reads too:
 
 ```bash
 hf auth login                                               # a token with write access to the organisation
 medsae convert runs/paper/bge_k64 checkpoints/bge-k64 --embedder bge   # or a folder written by medsae train
-medsae push checkpoints/bge-k64 doctolib-lab/medsae-bge-large-en-v1.5-k64
+medsae push checkpoints/bge-k64 my-org/medsae-bge-k64
 ```
 
 Weights inherit the terms of their training data. Every checkpoint trained on CURE is released under

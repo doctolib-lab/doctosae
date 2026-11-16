@@ -137,7 +137,7 @@ def test_train_help_shows_the_paper_grid_without_exponents(capsys):
 def test_help_never_breaks_an_id_across_lines(capsys, monkeypatch):
     monkeypatch.setenv("COLUMNS", "80")
     lines = help_text(capsys, "push").splitlines()
-    assert any("doctolib-lab/medsae-bge-large-en-v1.5-k64" in line for line in lines)
+    assert any("my-org/medsae-bge-large-en-v1.5-k64" in line for line in lines)
     assert any("cc-by-nc-4.0" in line for line in lines)
 
 
@@ -151,10 +151,35 @@ def test_datasets_lists_the_registry(capsys):
         assert name in out
 
 
-def test_pretrained_names_a_checkpoint_offline(capsys):
-    code, out, _ = run(capsys, "pretrained", "--embedder", "bge", "--k", "128")
+def test_pretrained_names_a_checkpoint(capsys, monkeypatch):
+    class FakeApi:
+        def __init__(self, token=None):
+            pass
+
+        def list_repo_files(self, repo_id, revision=None):
+            assert repo_id == "doctolib-lab/medsae-bge-large-en-v1.5"
+            return [
+                "k64_m3072/cfg.json",
+                "k64_m3072/sae.safetensors",
+                "k256_m3072/cfg.json",
+                "k256_m3072/sae.safetensors",
+            ]
+
+    monkeypatch.setattr("medsae.hub.HfApi", FakeApi)
+    code, out, _ = run(capsys, "pretrained", "--embedder", "bge", "--k", "256")
     assert code == 0
-    assert out.strip() == "doctolib-lab/medsae-bge-large-en-v1.5-k128"
+    assert out.strip() == "doctolib-lab/medsae-bge-large-en-v1.5/k256_m3072"
+    code, out, err = run(capsys, "pretrained", "--embedder", "bge", "--k", "128")
+    assert code == 1 and "k=128" in err
+
+
+@pytest.mark.network
+def test_pretrained_loads_a_released_checkpoint():
+    from medsae.hub import load_pretrained
+
+    sae = load_pretrained("bge", k=64)
+    assert (sae.d_in, sae.n_latents, sae.k) == (1024, 3072, 64)
+    assert sae.metadata["hub_checkpoint"] == "doctolib-lab/medsae-bge-large-en-v1.5/k64_m3072"
 
 
 # Paper checkpoint conversion
