@@ -108,15 +108,18 @@ def _load_embeddings(folder: Path, dataset_name: str, cache_dir: Path | None) ->
 
 
 def _load_sae(spec: str) -> MedSAE:
-    """A folder written by ``save_pretrained`` (``MedSAE.from_pretrained``), else a Hub repository
+    """A folder written by ``save_pretrained`` (``MedSAE.from_pretrained``), else a Hub checkpoint id
     (``medsae.load_pretrained``)."""
     path = Path(spec).expanduser()
     if path.exists():
         from medsae.sae import MedSAE
 
         return MedSAE.from_pretrained(path)
-    if spec.count("/") != 1 or spec.startswith((".", "/", "~")):
-        raise FileNotFoundError(f"no MedSAE folder at {spec} (a Hub repository id reads organisation/name)")
+    if spec.count("/") not in (1, 2) or spec.startswith((".", "/", "~")):
+        raise FileNotFoundError(
+            f"no MedSAE folder at {spec} (a Hub checkpoint id reads organisation/name or "
+            "organisation/name/kK_mM)"
+        )
     from medsae.hub import load_pretrained
 
     return load_pretrained(repo_id=spec)
@@ -200,22 +203,30 @@ def _add_pretrained(commands: Subparsers, parent: argparse.ArgumentParser) -> No
         "pretrained",
         "list, name or download pretrained checkpoints",
         "Without options, list the MedSAE checkpoints published on the Hugging Face Hub "
-        "(medsae.list_pretrained). With --embedder and --k, print the repository of that checkpoint "
-        "(medsae.pretrained_repo_id); add --download to save it into a new folder (medsae.load_pretrained).",
+        "(medsae.list_pretrained). With --embedder and --k, print the id of that checkpoint "
+        "(medsae.pretrained_checkpoint_id); add --download to save it into a new folder "
+        "(medsae.load_pretrained).",
         "medsae pretrained\nmedsae pretrained --embedder bge --k 64\n"
         "medsae pretrained --embedder bge --k 64 --download checkpoints/bge_k64",
     )
     sub.add_argument("--author", help="Hub user or organisation to list (default: doctolib-lab)")
     sub.add_argument("--embedder", help="bge, medembed, gemini or a full model id (default: bge)")
-    sub.add_argument("--k", type=int, metavar="K", help="active features of the checkpoint (default: 64)")
-    sub.add_argument("--repo-id", help="explicit Hub repository, instead of --embedder and --k")
+    sub.add_argument(
+        "--k",
+        type=int,
+        metavar="K",
+        help="active features of the checkpoint (default: the smallest published)",
+    )
+    sub.add_argument(
+        "--repo-id", help="checkpoint or repository id on the Hub, instead of --embedder and --k"
+    )
     sub.add_argument("--revision", help="branch, tag or commit of the repository")
     sub.add_argument("--download", metavar="DIR", type=Path, help="save the checkpoint into this new folder")
     sub.set_defaults(handler=_run_pretrained)
 
 
 def _run_pretrained(args: argparse.Namespace) -> int:
-    from medsae.hub import HUB_ORG, list_pretrained, load_pretrained, pretrained_repo_id
+    from medsae.hub import HUB_ORG, list_pretrained, load_pretrained, pretrained_checkpoint_id
 
     if args.embedder is None and args.k is None and args.repo_id is None and args.download is None:
         published = list_pretrained(**_given(author=args.author))
@@ -223,14 +234,16 @@ def _run_pretrained(args: argparse.Namespace) -> int:
             "\n".join(published) or f"No MedSAE checkpoint is published under {args.author or HUB_ORG} yet."
         )
         return 0
-    repo_id = args.repo_id or pretrained_repo_id(**_given(embedder=args.embedder, k=args.k))
+    checkpoint_id = pretrained_checkpoint_id(
+        **_given(embedder=args.embedder, k=args.k, repo_id=args.repo_id, revision=args.revision)
+    )
     if args.download is None:
-        print(repo_id)
+        print(checkpoint_id)
         return 0
     _require_new_folder(args.download)
-    sae = load_pretrained(repo_id=repo_id, **_given(revision=args.revision))
+    sae = load_pretrained(repo_id=checkpoint_id, **_given(revision=args.revision))
     sae.save_pretrained(args.download)
-    print(f"Saved {repo_id} ({sae.extra_repr()}) to {args.download}")
+    print(f"Saved {checkpoint_id} ({sae.extra_repr()}) to {args.download}")
     return 0
 
 
@@ -761,12 +774,10 @@ def _add_push(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
         "(medsae.hub.push_to_hub). The license of the model card follows the training data recorded by the "
         "trainer, and --license overrides it. Log in first with `hf auth login` or set HF_TOKEN. Only push "
         "weights trained on data you may share: the decoder and b_pre carry aggregate information about it.",
-        "medsae push runs/cure/sae doctolib-lab/medsae-bge-large-en-v1.5-k64 --license cc-by-nc-4.0",
+        "medsae push runs/cure/sae my-org/medsae-bge-large-en-v1.5-k64 --license cc-by-nc-4.0",
     )
     sub.add_argument("folder", type=Path, help="MedSAE folder written by `medsae train` or `medsae convert`")
-    sub.add_argument(
-        "repo_id", help="target repository, for example doctolib-lab/medsae-bge-large-en-v1.5-k64"
-    )
+    sub.add_argument("repo_id", help="target repository, for example my-org/medsae-bge-large-en-v1.5-k64")
     sub.add_argument("--public", action="store_true", help="make the repository public (default: private)")
     sub.add_argument("--license", help="Hub license id of the weights, for example cc-by-nc-4.0 for CURE")
     sub.add_argument("--datasets", nargs="+", metavar="HUB_ID", help="Hub ids of the training datasets")

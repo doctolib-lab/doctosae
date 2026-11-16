@@ -56,7 +56,7 @@ Homepage = "https://github.com/doctolib-lab/medsae"
 Repository = "https://github.com/doctolib-lab/medsae"
 Issues = "https://github.com/doctolib-lab/medsae/issues"
 Paper = "https://arxiv.org/abs/2611.18179"
-"Hugging Face" = "https://huggingface.co/doctolib-lab"
+"Hugging Face" = "https://huggingface.co/collections/doctolib-lab/medsae"
 
 [project.scripts]
 medsae = "medsae.cli:main"

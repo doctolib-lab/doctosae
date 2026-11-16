@@ -23,6 +23,7 @@ _EXPORTS: dict[str, str] = {
     "load_pretrained": "medsae.hub",
     "list_pretrained": "medsae.hub",
     "pretrained_repo_id": "medsae.hub",
+    "pretrained_checkpoint_id": "medsae.hub",
     "from_paper_checkpoint": "medsae.hub",
     "RetrievalDataset": "medsae.data",
     "load_dataset": "medsae.data",
@@ -47,6 +48,7 @@ __all__ = [
     "load_pretrained",
     "list_pretrained",
     "pretrained_repo_id",
+    "pretrained_checkpoint_id",
     "from_paper_checkpoint",
     "RetrievalDataset",
     "load_dataset",
@@ -68,7 +70,13 @@ __all__ = [
 if TYPE_CHECKING:  # static analysers and IDEs see the real objects
     from medsae.data import RetrievalDataset, list_datasets, load_beir_folder, load_dataset
     from medsae.embed import EmbeddedDataset, Embedder
-    from medsae.hub import from_paper_checkpoint, list_pretrained, load_pretrained, pretrained_repo_id
+    from medsae.hub import (
+        from_paper_checkpoint,
+        list_pretrained,
+        load_pretrained,
+        pretrained_checkpoint_id,
+        pretrained_repo_id,
+    )
     from medsae.interpret import FeatureCard, Interpreter, OpenAICompatibleLLM, TransformersLLM
     from medsae.metrics import evaluate
     from medsae.retrieval import encode_corpus, search

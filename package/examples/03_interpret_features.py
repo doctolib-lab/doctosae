@@ -45,7 +45,7 @@ from medsae.interpret import LLM, FakeLLM, ScoreReport
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Describe, score and use the features of a MedSAE.")
-    parser.add_argument("--sae", default="runs/quickstart/sae", help="MedSAE folder or Hub repository")
+    parser.add_argument("--sae", default="runs/quickstart/sae", help="MedSAE folder or Hub checkpoint id")
     parser.add_argument("--dataset", default="nfcorpus", help="dataset to interpret on (default: nfcorpus)")
     parser.add_argument(
         "--embeddings",
