@@ -11,12 +11,14 @@ authors:
   - family-names: Bouchacourt
     given-names: Diane
 preferred-citation:
-  type: conference-paper
+  type: article
   title: "Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders"
   authors:
-    - family-names: Brison
-      given-names: Gaëtan
     - family-names: Bouchacourt
       given-names: Diane
-  collection-title: "Machine Learning for Health (ML4H)"
+    - family-names: Brison
+      given-names: Gaëtan
+  journal: "arXiv preprint arXiv:2611.18179"
   year: 2026
+  doi: "10.48550/arXiv.2611.18179"
+  url: "https://arxiv.org/abs/2611.18179"

@@ -1,8 +1,8 @@
 # MedSAE
 
 **Sparse autoencoders for interpretable and transferable medical retrieval.** Reference implementation of the ML4H
-2026 paper [*Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders*](https://arxiv.org/abs/2611.18179) (Gaëtan Brison and
-Diane Bouchacourt).
+2026 paper [*Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders*](https://arxiv.org/abs/2611.18179) (Diane Bouchacourt and
+Gaëtan Brison).
 
 ![MedSAE overview](../.github/assets/medsae_overview.png)
 
@@ -99,14 +99,14 @@ NDCG@10 (%) with `BAAI/bge-large-en-v1.5`, SAEs trained on CURE, mean over three
 ## Citation
 
 ```bibtex
-@inproceedings{brison2026explanations,
-  title     = {Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders},
-  author    = {Brison, Ga{\"e}tan and Bouchacourt, Diane},
-  booktitle = {Machine Learning for Health (ML4H)},
-  year      = {2026},
-  eprint    = {2611.18179},
-  archivePrefix = {arXiv},
-  url       = {https://arxiv.org/abs/2611.18179}
+@misc{bouchacourt2026explanationstransferinterpretingmedical,
+      title={Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders},
+      author={Diane Bouchacourt and Gaëtan Brison},
+      year={2026},
+      eprint={2611.18179},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR},
+      url={https://arxiv.org/abs/2611.18179},
 }
 ```
 

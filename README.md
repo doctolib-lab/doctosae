@@ -300,14 +300,14 @@ question the Activation Prediction LLM answers: given the description of a featu
 ### 09 Citation 📚
 
 ```bibtex
-@inproceedings{brison2026explanations,
-  title     = {Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders},
-  author    = {Brison, Ga{\"e}tan and Bouchacourt, Diane},
-  booktitle = {Machine Learning for Health (ML4H)},
-  year      = {2026},
-  eprint    = {2611.18179},
-  archivePrefix = {arXiv},
-  url       = {https://arxiv.org/abs/2611.18179}
+@misc{bouchacourt2026explanationstransferinterpretingmedical,
+      title={Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders},
+      author={Diane Bouchacourt and Gaëtan Brison},
+      year={2026},
+      eprint={2611.18179},
+      archivePrefix={arXiv},
+      primaryClass={cs.IR},
+      url={https://arxiv.org/abs/2611.18179},
 }
 ```
 
