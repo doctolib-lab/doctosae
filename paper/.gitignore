@@ -1,0 +1,49 @@
+# Large experiment outputs
+runs/
+data/
+
+# Generated HTML reports (rebuilt from scripts)
+*.html
+
+# JSON outputs (embeddings, results, caches)
+*.json
+*.jsonl
+
+# Generated figures (rebuilt from plotting scripts)
+figures/
+
+# Scratch/temporary output copies
+tmp/
+
+# Temp/old versions
+*copy*.py
+*_old.py
+*.b64.txt
+*.npz
+
+# SQLite Optuna DBs
+*.db
+
+# Parquet / Arrow / CSV data files
+*.parquet
+*.arrow
+*.csv
+
+# Model checkpoints and weights
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.bin
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# Sweep job scripts and logs (scripts/sweep_cure_*.sh)
+logs/
+
+# Local environment files (secrets, project ids)
+.env*

@@ -1,0 +1,110 @@
+[
+  {
+    "rank": 1,
+    "feature_id": 101,
+    "judge_input": "asthma: This neuron reacts to documents and queries about asthma control in adults, especially inhaled corticosteroids and the triggers of acute attacks. (keywords: asthma, inhaled corticosteroids, wheezing, exacerbation, bronchodilator)",
+    "topic": "asthma",
+    "description": "This neuron reacts to documents and queries about asthma control in adults, especially inhaled corticosteroids and the triggers of acute attacks.",
+    "keywords": [
+      "asthma",
+      "inhaled corticosteroids",
+      "wheezing",
+      "exacerbation",
+      "bronchodilator"
+    ],
+    "passage": "Synthetic example. Daily inhaled corticosteroids in adults with persistent asthma: in this made up cohort, people who used their controller inhaler every day reported fewer night time symptoms and needed their reliever bronchodilator less often over one year.",
+    "ground_truth": 1,
+    "case_id": "X01",
+    "source": "synthetic"
+  },
+  {
+    "rank": 2,
+    "feature_id": 102,
+    "judge_input": "knee osteoarthritis: This neuron reacts to documents and queries about knee osteoarthritis, in particular exercise therapy, weight loss and joint replacement. (keywords: osteoarthritis, knee, exercise therapy, weight loss, arthroplasty)",
+    "topic": "knee osteoarthritis",
+    "description": "This neuron reacts to documents and queries about knee osteoarthritis, in particular exercise therapy, weight loss and joint replacement.",
+    "keywords": [
+      "osteoarthritis",
+      "knee",
+      "exercise therapy",
+      "weight loss",
+      "arthroplasty"
+    ],
+    "passage": "Synthetic example. Screening for diabetic retinopathy with retinal photographs: this invented summary describes how primary care teams grade fundus images and refer people with sight threatening changes to an eye specialist.",
+    "ground_truth": 0,
+    "case_id": "X02",
+    "source": "synthetic"
+  },
+  {
+    "rank": 3,
+    "feature_id": 103,
+    "judge_input": "type 2 diabetes: This neuron reacts to documents and queries about the drug treatment of type 2 diabetes, such as metformin, insulin and glucose targets. (keywords: type 2 diabetes, metformin, HbA1c, insulin, glycemic control)",
+    "topic": "type 2 diabetes",
+    "description": "This neuron reacts to documents and queries about the drug treatment of type 2 diabetes, such as metformin, insulin and glucose targets.",
+    "keywords": [
+      "type 2 diabetes",
+      "metformin",
+      "HbA1c",
+      "insulin",
+      "glycemic control"
+    ],
+    "passage": "Synthetic example. Starting metformin after a diagnosis of type 2 diabetes: this fictional overview explains that the drug lowers HbA1c, rarely causes low blood sugar on its own, and is usually taken with meals to limit stomach upset.",
+    "ground_truth": 1,
+    "case_id": "X03",
+    "source": "synthetic"
+  },
+  {
+    "rank": 4,
+    "feature_id": 104,
+    "judge_input": "migraine: This neuron reacts to documents and queries about migraine, including aura, common triggers and preventive medication. (keywords: migraine, aura, headache, triptans, prevention)",
+    "topic": "migraine",
+    "description": "This neuron reacts to documents and queries about migraine, including aura, common triggers and preventive medication.",
+    "keywords": [
+      "migraine",
+      "aura",
+      "headache",
+      "triptans",
+      "prevention"
+    ],
+    "passage": "Synthetic example. Fluoride varnish and dental caries in young children: an invented report on how applications twice a year in nursery schools were followed by fewer new cavities.",
+    "ground_truth": 0,
+    "case_id": "X04",
+    "source": "synthetic"
+  },
+  {
+    "rank": 5,
+    "feature_id": 105,
+    "judge_input": "hip fracture: This neuron reacts to documents and queries about hip fractures in older adults, particularly the timing of surgery and rehabilitation after the operation. (keywords: hip fracture, older adults, surgery timing, rehabilitation, falls)",
+    "topic": "hip fracture",
+    "description": "This neuron reacts to documents and queries about hip fractures in older adults, particularly the timing of surgery and rehabilitation after the operation.",
+    "keywords": [
+      "hip fracture",
+      "older adults",
+      "surgery timing",
+      "rehabilitation",
+      "falls"
+    ],
+    "passage": "Synthetic example. Early surgery for hip fracture in older adults: in this made up audit, patients operated on within 36 hours of admission walked again sooner and spent fewer days in hospital than those whose surgery was delayed.",
+    "ground_truth": 1,
+    "case_id": "X05",
+    "source": "synthetic"
+  },
+  {
+    "rank": 6,
+    "feature_id": 106,
+    "judge_input": "atopic dermatitis: This neuron reacts to documents and queries about atopic dermatitis, especially itch, emollients and systemic treatments for severe eczema. (keywords: atopic dermatitis, eczema, itch, emollients, systemic therapy)",
+    "topic": "atopic dermatitis",
+    "description": "This neuron reacts to documents and queries about atopic dermatitis, especially itch, emollients and systemic treatments for severe eczema.",
+    "keywords": [
+      "atopic dermatitis",
+      "eczema",
+      "itch",
+      "emollients",
+      "systemic therapy"
+    ],
+    "passage": "Synthetic example. Salt intake and blood pressure: this fictional summary reviews how eating less sodium lowers systolic blood pressure in adults with hypertension.",
+    "ground_truth": 0,
+    "case_id": "X06",
+    "source": "synthetic"
+  }
+]
