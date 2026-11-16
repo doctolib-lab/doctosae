@@ -336,3 +336,7 @@ question the Activation Prediction LLM answers: given the description of a featu
 MedSAE is a research tool. Feature descriptions are written by an LLM and can be wrong, and retrieval quality on
 medical questions is far from perfect. Do not use MedSAE, its checkpoints or its explanations for diagnosis,
 treatment or any other clinical decision.
+
+### 12 Star history ⭐
+
+[![Star history of doctolib-lab/medsae](https://api.star-history.com/svg?repos=doctolib-lab/medsae&type=Date)](https://star-history.com/#doctolib-lab/medsae&Date)
