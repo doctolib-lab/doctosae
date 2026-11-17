@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 import torch
 
-from medsae.training.sampling import (
+from doctosae.training.sampling import (
     PairBatchSampler,
     ShuffledBatches,
     iter_forever,

@@ -28,11 +28,11 @@ import numpy as np
 import pandas as pd
 from huggingface_hub import hf_hub_download
 
-from medsae.data.dataset import RetrievalDataset
-from medsae.data.splits import ids_sha256, split_corpus, split_queries
+from doctosae.data.dataset import RetrievalDataset
+from doctosae.data.splits import ids_sha256, split_corpus, split_queries
 
 if TYPE_CHECKING:
-    from medsae.data.registry import DatasetInfo
+    from doctosae.data.registry import DatasetInfo
 
 __all__ = ["CURE_DISCIPLINES", "load_beir_folder", "load_cure", "load_miriad", "load_nfcorpus", "load_r2med"]
 
@@ -55,7 +55,7 @@ CURE_DISCIPLINES = (
     "pulmonology",
 )
 
-# Fingerprints (medsae.data.splits.ids_sha256) of the CURE split the paper trained and evaluated on,
+# Fingerprints (doctosae.data.splits.ids_sha256) of the CURE split the paper trained and evaluated on,
 # recomputed from the raw files at the pinned revision. The split rests on the default_rng stream of numpy,
 # which NumPy does not promise to keep across releases, so every load at the paper settings is checked.
 _CURE_PAPER_SPLIT = {

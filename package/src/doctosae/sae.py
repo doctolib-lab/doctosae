@@ -1,4 +1,4 @@
-"""The MedSAE model: a TopK sparse autoencoder over frozen dense text embeddings.
+"""The DoctoSAE model: a TopK sparse autoencoder over frozen dense text embeddings.
 
 The architecture follows the paper (Section 3.1, Equations 1 to 3) and its released code
 (``TopkNoReluSparseAutoencoder`` in ``paper/src/utils/sae_architectures.py``)::
@@ -9,7 +9,7 @@ The architecture follows the paper (Section 3.1, Equations 1 to 3) and its relea
 
 Parameter names (``encoder``, ``decoder``, ``b_pre``) match the paper code, so checkpoints written by
 ``paper/src/training/train_sae.py`` load without any key renaming (see
-:func:`medsae.hub.from_paper_checkpoint`).
+:func:`doctosae.hub.from_paper_checkpoint`).
 """
 
 from __future__ import annotations
@@ -22,9 +22,9 @@ import torch
 import torch.nn as nn
 from huggingface_hub import ModelCard, PyTorchModelHubMixin
 
-from medsae._ids import is_hub_id, require_shareable_embedder, resolve_embedder
+from doctosae._ids import is_hub_id, require_shareable_embedder, resolve_embedder
 
-__all__ = ["MedSAE", "geometric_median"]
+__all__ = ["DoctoSAE", "geometric_median"]
 
 _ACTIVATIONS = ("relu", "none")
 
@@ -37,12 +37,12 @@ MODEL_CARD_TEMPLATE = """
 {{ card_data }}
 ---
 
-# MedSAE sparse autoencoder
+# DoctoSAE sparse autoencoder
 
 A TopK sparse autoencoder over the frozen embeddings of {{ embedder }}: {{ n_latents }} features, at most
-{{ k }} active per embedding. Load it with the `medsae` package, `MedSAE.from_pretrained(<repository id>)`,
-and embed queries with `medsae.Embedder.from_sae(sae)` so that they get the instruction of the training
-queries.
+{{ k }} active per embedding. Load it with the `doctosae` package, `DoctoSAE.from_pretrained(<repository
+id>)`, and embed queries with `doctosae.Embedder.from_sae(sae)` so that they get the instruction of the
+training queries.
 
 * Code: {{ repo_url }}
 * Docs: {{ docs_url }}
@@ -56,9 +56,9 @@ queries.
 
 ## Responsible use
 
-MedSAE is a research tool. Feature descriptions are written by an LLM and can be wrong, and retrieval quality
-on medical questions is far from perfect. Do not use these weights, their codes or their explanations for
-diagnosis, treatment or any other clinical decision.
+DoctoSAE is a research tool. Feature descriptions are written by an LLM and can be wrong, and retrieval
+quality on medical questions is far from perfect. Do not use these weights, their codes or their explanations
+for diagnosis, treatment or any other clinical decision.
 """
 
 
@@ -81,7 +81,7 @@ def _registry_terms(name: str | None) -> str | None:
     """Usage terms of a registered dataset, for checkpoints that record its name but not its terms."""
     if not name:
         return None
-    from medsae.data.registry import DATASETS, resolve_dataset_name  # pandas only loads to write a card
+    from doctosae.data.registry import DATASETS, resolve_dataset_name  # pandas only loads to write a card
 
     key = resolve_dataset_name(name)
     return DATASETS[key].terms if key else None
@@ -142,12 +142,12 @@ def geometric_median(
     return y
 
 
-class MedSAE(
+class DoctoSAE(
     nn.Module,
     PyTorchModelHubMixin,
-    library_name="medsae",
-    repo_url="https://github.com/doctolib-lab/medsae",
-    docs_url="https://github.com/doctolib-lab/medsae/tree/main/package",
+    library_name="doctosae",
+    repo_url="https://github.com/doctolib-lab/doctosae",
+    docs_url="https://github.com/doctolib-lab/doctosae/tree/main/package",
     license="apache-2.0",
     pipeline_tag="feature-extraction",
     tags=["sparse-autoencoder", "interpretability", "medical", "information-retrieval"],
@@ -163,13 +163,13 @@ class MedSAE(
         activation: ``"relu"`` (paper default, Gao et al. 2024 Equation 2) or ``"none"`` for the linear TopK
             of Makhzani and Frey (2013).
         embedder: Identifier of the frozen embedding model the SAE was trained on. Stored in ``config.json``
-            so that :meth:`medsae.Embedder.from_sae` can rebuild the matching encoder.
+            so that :meth:`doctosae.Embedder.from_sae` can rebuild the matching encoder.
         query_instruction: Instruction prepended to queries before embedding, if the embedder needs one.
         metadata: Free form, JSON serializable training metadata (dataset, loss weights, scores...).
 
     The model is a :class:`huggingface_hub.PyTorchModelHubMixin`, so ``save_pretrained``, ``push_to_hub``
     and ``from_pretrained`` work out of the box. Keyword arguments given to ``from_pretrained`` override the
-    stored configuration, for example ``MedSAE.from_pretrained(repo_id, k=32)``.
+    stored configuration, for example ``DoctoSAE.from_pretrained(repo_id, k=32)``.
     """
 
     def __init__(
@@ -248,7 +248,7 @@ class MedSAE(
         """Model card whose metadata and text follow the training data of this checkpoint.
 
         The weights inherit the terms of the data they were trained on, so ``metadata["license"]`` and
-        ``metadata["datasets"]`` (set by :class:`medsae.Trainer` from the dataset registry) override the
+        ``metadata["datasets"]`` (set by :class:`doctosae.Trainer` from the dataset registry) override the
         package license, and the card text repeats the terms of the training data. For example a checkpoint
         trained on CURE is ``cc-by-nc-4.0``. Trained weights that record no license get ``license: other``
         with ``license_name: unknown``, never the license of the code. ``base_model`` is set, as an adapter of
@@ -293,7 +293,7 @@ class MedSAE(
         map_location: str = "cpu",
         strict: bool = True,
         **model_kwargs: Any,
-    ) -> MedSAE:
+    ) -> DoctoSAE:
         # The mixin silently swallows Hub errors (missing, gated or private repository, wrong revision) and
         # would then fail with an obscure TypeError. Fail loudly instead, and load weights strictly by
         # default.
@@ -301,7 +301,7 @@ class MedSAE(
         if missing:
             raise FileNotFoundError(
                 f"No usable config.json for {model_id!r}: missing repository, gated or private repository "
-                f"without a token, wrong revision, or not a MedSAE checkpoint (missing {missing})."
+                f"without a token, wrong revision, or not a DoctoSAE checkpoint (missing {missing})."
             )
         if Path(model_id).is_dir():
             # What the mixin does for a local folder, without the line it prints to stdout.

@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
-from medsae.interpret.prompts import split_title
+from doctosae.interpret.prompts import split_title
 
 __all__ = ["FeatureCard", "LABEL_ERROR", "PARSE_ERROR", "load_cards", "save_cards"]
 
@@ -23,7 +23,7 @@ LABEL_ERROR = "LABEL_ERROR"
 PARSE_ERROR = "PARSE_ERROR"
 _FAILED_TOPICS = (LABEL_ERROR, PARSE_ERROR)
 
-_CARDS_FORMAT = "medsae.feature_cards"
+_CARDS_FORMAT = "doctosae.feature_cards"
 _CARDS_VERSION = 1
 
 
@@ -153,5 +153,5 @@ def load_cards(path: str | Path) -> list[FeatureCard]:
     """Read cards written by :func:`save_cards`."""
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     if payload.get("format") != _CARDS_FORMAT:
-        raise ValueError(f"{path} is not a medsae feature cards file")
+        raise ValueError(f"{path} is not a doctosae feature cards file")
     return [FeatureCard.from_dict(card) for card in payload["cards"]]

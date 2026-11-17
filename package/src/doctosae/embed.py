@@ -38,11 +38,11 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 from tqdm.auto import tqdm
 
-from medsae._ids import resolve_embedder
-from medsae.data.dataset import EmbeddedDataset, RetrievalDataset, texts_digest
+from doctosae._ids import resolve_embedder
+from doctosae.data.dataset import EmbeddedDataset, RetrievalDataset, texts_digest
 
 if TYPE_CHECKING:
-    from medsae.sae import MedSAE
+    from doctosae.sae import DoctoSAE
 
 __all__ = [
     "BGE_QUERY_INSTRUCTION",
@@ -87,7 +87,7 @@ MODEL_REVISIONS: dict[str, str] = {
     **{model: info["revision"] for model, info in PAPER_EMBEDDERS.items() if info["revision"]},
 }
 
-_CACHE_FILE = "medsae_cache.json"
+_CACHE_FILE = "doctosae_cache.json"
 # Files whose size and modification time identify the weights of a local model folder.
 _WEIGHT_SUFFIXES = (".safetensors", ".bin", ".pt", ".pth", ".onnx")
 
@@ -193,7 +193,7 @@ class _BaseEmbedder(abc.ABC):
         """Load what embedding needs (the model of a local embedder); a no op for API embedders."""
 
     @classmethod
-    def from_sae(cls, sae: MedSAE, **kwargs: Any) -> Embedder | GeminiEmbedder:
+    def from_sae(cls, sae: DoctoSAE, **kwargs: Any) -> Embedder | GeminiEmbedder:
         """The embedder an SAE was trained on, as recorded in its config.
 
         ``sae.embedder`` gives the model, ``sae.query_instruction`` the instruction (``""`` for none) and
@@ -413,7 +413,7 @@ class Embedder(_BaseEmbedder):
             raise ValueError(f"name names the model of a local folder, and {model!r} is not a local folder")
         self.model_id = resolve_embedder(name if name is not None else model)
         if _is_gemini(self.model_id):
-            raise ValueError(f"{self.model_id} is served through an API: use medsae.embed.GeminiEmbedder")
+            raise ValueError(f"{self.model_id} is served through an API: use doctosae.embed.GeminiEmbedder")
         self.source = str(Path(model).expanduser()) if local else self.model_id
         self.query_instruction = (
             default_query_instruction(self.model_id) if query_instruction is None else query_instruction
@@ -513,7 +513,7 @@ class GeminiEmbedder(_BaseEmbedder):
     Credentials come from the environment. With ``vertexai=True`` (the paper setup): Application Default
     Credentials, ``project`` or ``GOOGLE_CLOUD_PROJECT``, ``location`` or ``GOOGLE_CLOUD_LOCATION``
     (``europe-west4`` by default, as in the paper code). With ``vertexai=False``: the Gemini Developer API
-    with ``api_key`` or ``GEMINI_API_KEY``. Requires ``pip install "medsae[gemini]"``. Check the Gemini API
+    with ``api_key`` or ``GEMINI_API_KEY``. Requires ``pip install "doctosae[gemini]"``. Check the Gemini API
     terms before publishing SAE weights trained on its embeddings.
 
     Args:
@@ -590,7 +590,7 @@ class GeminiEmbedder(_BaseEmbedder):
                 from google import genai
             except ImportError as error:
                 raise ImportError(
-                    'GeminiEmbedder needs google-genai: pip install "medsae[gemini]"'
+                    'GeminiEmbedder needs google-genai: pip install "doctosae[gemini]"'
                 ) from error
             if self.vertexai:
                 self._client = genai.Client(

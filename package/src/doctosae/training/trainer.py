@@ -30,20 +30,20 @@ import numpy as np
 import torch
 from tqdm.auto import tqdm
 
-from medsae._ids import embedding_differences, embedding_settings, resolve_embedder, shareable_model_id
-from medsae.data.dataset import EmbeddedDataset, RetrievalDataset
-from medsae.metrics import Judgments, pool_ndcg
-from medsae.retrieval import encode_corpus
-from medsae.sae import MedSAE, _jsonable
-from medsae.training.config import TrainingConfig
-from medsae.training.losses import (
+from doctosae._ids import embedding_differences, embedding_settings, resolve_embedder, shareable_model_id
+from doctosae.data.dataset import EmbeddedDataset, RetrievalDataset
+from doctosae.metrics import Judgments, pool_ndcg
+from doctosae.retrieval import encode_corpus
+from doctosae.sae import DoctoSAE, _jsonable
+from doctosae.training.config import TrainingConfig
+from doctosae.training.losses import (
     info_nce_loss,
     positive_mask,
     reconstruction_loss,
     squared_error,
     weighted_loss,
 )
-from medsae.training.sampling import (
+from doctosae.training.sampling import (
     PairBatch,
     PairBatchSampler,
     ShuffledBatches,
@@ -87,7 +87,7 @@ def resolve_device(device: torch.device | str | None = None) -> torch.device:
     return torch.device("cpu")
 
 
-def build_optimizer(sae: MedSAE, lr: float, weight_decay: float = 0.0) -> torch.optim.Adam:
+def build_optimizer(sae: DoctoSAE, lr: float, weight_decay: float = 0.0) -> torch.optim.Adam:
     """Adam with weight decay on the encoder only (``build_optimizer`` of the paper code)."""
     no_decay = {id(sae.decoder.weight), id(sae.b_pre)}
     groups = [
@@ -98,7 +98,7 @@ def build_optimizer(sae: MedSAE, lr: float, weight_decay: float = 0.0) -> torch.
 
 
 def train_step(
-    sae: MedSAE,
+    sae: DoctoSAE,
     optimizer: torch.optim.Optimizer,
     corpus: torch.Tensor,
     corpus_rows: np.ndarray,
@@ -167,12 +167,12 @@ def train_step(
 
 
 class Trainer:
-    """Train a :class:`~medsae.MedSAE` with the objective, schedule and checkpoint selection of the paper.
+    """Train a :class:`~doctosae.DoctoSAE` with the objective, schedule and checkpoint selection of the paper.
 
     Example::
 
         torch.manual_seed(42)
-        sae = MedSAE(d_in=data.dim, n_latents=3 * data.dim, k=64)
+        sae = DoctoSAE(d_in=data.dim, n_latents=3 * data.dim, k=64)
         trainer = Trainer(sae, TrainingConfig(), output_dir="runs/cure_bge_k64").fit(data)
         evaluate(trainer.best_model, data, split="test")
 
@@ -186,7 +186,7 @@ class Trainer:
     """
 
     def __init__(
-        self, sae: MedSAE, config: TrainingConfig | None = None, output_dir: str | Path | None = None
+        self, sae: DoctoSAE, config: TrainingConfig | None = None, output_dir: str | Path | None = None
     ) -> None:
         self.sae = sae
         self.config = config or TrainingConfig()
@@ -195,7 +195,7 @@ class Trainer:
         self.summary: dict[str, Any] = {}
         self.best_metric = math.nan
         self.best_step: int | None = None
-        self.best_model: MedSAE | None = None
+        self.best_model: DoctoSAE | None = None
 
     def fit(
         self, data: EmbeddedDataset, train_split: str = "train", val_split: str | None = "val"
@@ -203,7 +203,7 @@ class Trainer:
         """Train on the ``train_split`` queries and select the checkpoint on the ``val_split`` queries.
 
         Only the documents of the corpus split ``"train"`` enter the loss terms; the other documents are
-        held out (the paper split, built with :func:`medsae.data.splits.split_corpus` when the dataset
+        held out (the paper split, built with :func:`doctosae.data.splits.split_corpus` when the dataset
         has none). Validation always scores against the whole corpus. Without usable ``val_split``
         queries the checkpoint is selected on the training queries, with a warning, and
         ``val_split=None`` keeps the weights of the last step.
@@ -297,7 +297,7 @@ class Trainer:
             self._save(sae)
         return self
 
-    def _keep_best(self, sae: MedSAE, best_state: dict[str, torch.Tensor] | None, describe: Any) -> None:
+    def _keep_best(self, sae: DoctoSAE, best_state: dict[str, torch.Tensor] | None, describe: Any) -> None:
         """After an error or an interrupt: load the best weights so far and mark the saved run incomplete.
 
         The weights themselves were written at their evaluation; only the summary and history are updated
@@ -325,7 +325,7 @@ class Trainer:
 
     def _evaluate(
         self,
-        sae: MedSAE,
+        sae: DoctoSAE,
         data: EmbeddedDataset,
         run: _Run,
         step: int,
@@ -361,7 +361,7 @@ class Trainer:
 
     def _describe(
         self,
-        sae: MedSAE,
+        sae: DoctoSAE,
         data: EmbeddedDataset,
         run: _Run,
         lineage: dict[str, Any],
@@ -419,7 +419,7 @@ class Trainer:
     def _write_json(self, name: str, payload: Any) -> None:
         (self.output_dir / name).write_text(json.dumps(_jsonable(payload), indent=2) + "\n")
 
-    def _save(self, sae: MedSAE) -> None:
+    def _save(self, sae: DoctoSAE) -> None:
         output_dir = self.output_dir
         output_dir.mkdir(parents=True, exist_ok=True)
         # save_pretrained never overwrites an existing model card, whose license must follow the new weights.
@@ -542,7 +542,7 @@ class _ValidationLoss:
                 self.sampler = PairBatchSampler(pairs, config.batch_size, seed=config.seed, drop_last=False)
 
     @torch.no_grad()
-    def __call__(self, sae: MedSAE, corpus: torch.Tensor) -> dict[str, float | None]:
+    def __call__(self, sae: DoctoSAE, corpus: torch.Tensor) -> dict[str, float | None]:
         cfg, device = self.config, sae.device
         totals: dict[str, float] = defaultdict(float)
         query_batches = iter_forever(torch.arange(len(self.queries)).split(cfg.batch_size))
@@ -593,7 +593,7 @@ def _format(value: float | None) -> str:
     return "n/a" if value is None else f"{value:.4f}"
 
 
-def _cpu_state(sae: MedSAE) -> dict[str, torch.Tensor]:
+def _cpu_state(sae: DoctoSAE) -> dict[str, torch.Tensor]:
     return {name: tensor.detach().to("cpu", copy=True) for name, tensor in sae.state_dict().items()}
 
 
@@ -602,7 +602,7 @@ def _as_tensor(array: np.ndarray) -> torch.Tensor:
     return torch.from_numpy(np.require(array, dtype=np.float32, requirements=["C", "W"]))
 
 
-def _match_embedder(sae: MedSAE, data: EmbeddedDataset) -> None:
+def _match_embedder(sae: DoctoSAE, data: EmbeddedDataset) -> None:
     """Check that the SAE fits the embeddings, and record their embedder and query instruction on it.
 
     A ``None`` query instruction is unknown: the SAE adopts the one of the data, and data of unknown
@@ -649,7 +649,7 @@ def _recorded_embedder(embedder: str | None) -> str | None:
     return shared
 
 
-def _lineage(sae: MedSAE, dataset: RetrievalDataset) -> dict[str, Any]:
+def _lineage(sae: DoctoSAE, dataset: RetrievalDataset) -> dict[str, Any]:
     """Data provenance of the weights after this training: the datasets, their license and their terms.
 
     Fine tuning trained weights keeps where they came from: their earlier training moves into ``parents``,
@@ -713,7 +713,7 @@ def _merged_license(
 
 def _registry_terms(dataset: RetrievalDataset) -> str | None:
     """Usage terms of a benchmark loaded from the registry (same name and Hub ids), else None."""
-    from medsae.data.registry import DATASETS, resolve_dataset_name
+    from doctosae.data.registry import DATASETS, resolve_dataset_name
 
     key = resolve_dataset_name(dataset.name)
     if key is None or list(DATASETS[key].hf_ids) != list(dataset.hf_ids):
@@ -733,7 +733,7 @@ def _corpus_split(
     splits = dataset.corpus_splits
     if splits is None and val_fraction > 0:
         # Imported here: only datasets without a corpus split of their own need the paper's splitting code.
-        from medsae.data.splits import split_corpus
+        from doctosae.data.splits import split_corpus
 
         splits = split_corpus(dataset, val_frac=val_fraction, train_split=train_split)
     if splits is None:

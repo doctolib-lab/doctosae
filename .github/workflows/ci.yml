@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   package:
-    name: medsae package (Python ${{ matrix.python-version }})
+    name: doctosae package (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -41,7 +41,7 @@ jobs:
       - name: Format
         run: ruff format --check src tests examples
       - name: Test
-        run: pytest -m "not network" --cov=medsae --cov-report=term-missing
+        run: pytest -m "not network" --cov=doctosae --cov-report=term-missing
       - name: Build the sdist and wheel
         run: python -m build
 

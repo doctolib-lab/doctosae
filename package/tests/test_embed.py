@@ -16,16 +16,16 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import medsae.embed as embed
-from medsae.data import EmbeddedDataset, RetrievalDataset
-from medsae.embed import (
+import doctosae.embed as embed
+from doctosae.data import EmbeddedDataset, RetrievalDataset
+from doctosae.embed import (
     BGE_QUERY_INSTRUCTION,
     Embedder,
     GeminiEmbedder,
     default_device,
     default_query_instruction,
 )
-from medsae.sae import MedSAE
+from doctosae.sae import DoctoSAE
 
 
 class FakeSentenceTransformer:
@@ -300,7 +300,7 @@ def test_saved_embeddings_refuse_other_texts_with_the_same_ids(models, dataset, 
     meta = json.loads((tmp_path / "saved" / "meta.json").read_text())
     del meta["corpus_texts"], meta["query_texts"]  # a file written before text digests existed
     (tmp_path / "saved" / "meta.json").write_text(json.dumps(meta))
-    with caplog.at_level(logging.WARNING, logger="medsae.data.dataset"):
+    with caplog.at_level(logging.WARNING, logger="doctosae.data.dataset"):
         assert EmbeddedDataset.load(tmp_path / "saved", edited).dim == 8
     assert "no text digests" in caplog.text
 
@@ -356,11 +356,11 @@ def test_embed_dataset_keeps_cached_documents_when_the_query_split_changes(model
     assert [call[0] for call in models[1].calls] == ["encode"]  # only the new queries are embedded
     assert embedded.queries["test"].shape == (1, 8)
     folder = tmp_path / "toy" / Embedder("bge", device="cpu").cache_name
-    assert (folder / "medsae_cache.json").is_file() and (folder / "corpus.npy").is_file()
+    assert (folder / "doctosae_cache.json").is_file() and (folder / "corpus.npy").is_file()
 
 
 def test_from_sae_rebuilds_the_training_embedder(models, caplog):
-    sae = MedSAE(d_in=8, n_latents=16, k=4, embedder="BAAI/bge-small-en-v1.5", query_instruction="query: ")
+    sae = DoctoSAE(d_in=8, n_latents=16, k=4, embedder="BAAI/bge-small-en-v1.5", query_instruction="query: ")
     embedder = Embedder.from_sae(sae, device="cpu", batch_size=4)
     assert isinstance(embedder, Embedder)
     assert (embedder.model_id, embedder.query_instruction, embedder.batch_size) == (
@@ -369,25 +369,27 @@ def test_from_sae_rebuilds_the_training_embedder(models, caplog):
         4,
     )
     assert Embedder.from_sae(sae, query_instruction="", device="cpu").query_instruction == ""
-    with caplog.at_level(logging.WARNING, logger="medsae.embed"):
-        paper = MedSAE(d_in=8, n_latents=16, k=4, embedder="bge")  # instruction unknown: the default
+    with caplog.at_level(logging.WARNING, logger="doctosae.embed"):
+        paper = DoctoSAE(d_in=8, n_latents=16, k=4, embedder="bge")  # instruction unknown: the default
         assert Embedder.from_sae(paper, device="cpu").query_instruction == BGE_QUERY_INSTRUCTION
     assert "does not record how its training queries were embedded" in caplog.text
-    assert isinstance(Embedder.from_sae(MedSAE(d_in=8, n_latents=16, k=4, embedder="gemini")), GeminiEmbedder)
+    assert isinstance(
+        Embedder.from_sae(DoctoSAE(d_in=8, n_latents=16, k=4, embedder="gemini")), GeminiEmbedder
+    )
     with pytest.raises(ValueError, match="does not record its embedder"):
-        Embedder.from_sae(MedSAE(d_in=8, n_latents=16, k=4))
+        Embedder.from_sae(DoctoSAE(d_in=8, n_latents=16, k=4))
 
 
 def test_no_instruction_is_recorded_as_an_empty_string_and_survives_a_new_default(models, dataset):
     """Queries embedded without instruction stay so, even for a model whose default now has one."""
     embedded = Embedder("BAAI/bge-small-en-v1.5", query_instruction="", device="cpu").embed_dataset(dataset)
     assert embedded.query_instruction == "" and embedded.embedding["query_instruction"] == ""
-    sae = MedSAE(d_in=8, n_latents=16, k=4, embedder=embedded.embedder, query_instruction="")
+    sae = DoctoSAE(d_in=8, n_latents=16, k=4, embedder=embedded.embedder, query_instruction="")
     assert Embedder.from_sae(sae, device="cpu").query_instruction == ""
 
 
 def test_from_sae_restores_the_recorded_settings(models):
-    sae = MedSAE(
+    sae = DoctoSAE(
         d_in=8, n_latents=16, k=4, embedder="some/model", query_instruction="",
         metadata={"embedding": {"revision": "abc", "document_instruction": "passage: ", "normalize": False,
                                 "max_seq_length": 128}},
@@ -480,7 +482,7 @@ def test_gemini_options_and_retries(genai, caplog):
 
 def test_gemini_needs_its_extra(monkeypatch):
     monkeypatch.setitem(sys.modules, "google", None)  # makes any import of google fail
-    with pytest.raises(ImportError, match=r"medsae\[gemini\]"):
+    with pytest.raises(ImportError, match=r"doctosae\[gemini\]"):
         GeminiEmbedder(show_progress=False).encode_documents(["text"])
 
 

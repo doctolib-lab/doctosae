@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 import scipy.sparse as sp
 
-from medsae.interpret.activations import (
+from doctosae.interpret.activations import (
     ActivationIndex,
     CodedTexts,
     article_keys,
@@ -20,8 +20,8 @@ from medsae.interpret.activations import (
     top_activating,
     top_per_article,
 )
-from medsae.interpret.selection import select_features, theme_entropy
-from medsae.interpret.tfidf import TfidfTerms
+from doctosae.interpret.selection import select_features, theme_entropy
+from doctosae.interpret.tfidf import TfidfTerms
 
 
 def column_codes(values: list[float], n_latents: int = 3, feature: int = 1) -> sp.csc_matrix:

@@ -9,9 +9,9 @@ import pytest
 import torch
 from sklearn.metrics import ndcg_score
 
-import medsae.metrics as metrics_module
-from medsae.data.dataset import EmbeddedDataset, RetrievalDataset
-from medsae.metrics import (
+import doctosae.metrics as metrics_module
+from doctosae.data.dataset import EmbeddedDataset, RetrievalDataset
+from doctosae.metrics import (
     Judgments,
     evaluate,
     mrr_at_k,
@@ -21,8 +21,8 @@ from medsae.metrics import (
     ranking_metrics,
     recall_at_k,
 )
-from medsae.retrieval import cosine_scores, encode_corpus, iter_cosine_scores
-from medsae.sae import MedSAE
+from doctosae.retrieval import cosine_scores, encode_corpus, iter_cosine_scores
+from doctosae.sae import DoctoSAE
 
 
 def _run(scores: np.ndarray, doc_ids: list[str]) -> dict[str, float]:
@@ -182,7 +182,7 @@ def test_evaluate_dense_embeddings():
 def test_evaluate_sae_codes_matches_the_manual_pipeline():
     data = _embedded()
     torch.manual_seed(0)
-    sae = MedSAE(d_in=8, n_latents=24, k=4, embedder="toy-embedder")
+    sae = DoctoSAE(d_in=8, n_latents=24, k=4, embedder="toy-embedder")
     result = evaluate(sae, data, "test", batch_size=5)
     query_codes = encode_corpus(sae, data.queries["test"])
     corpus_codes = encode_corpus(sae, data.corpus)
@@ -197,8 +197,8 @@ def test_evaluate_sae_codes_matches_the_manual_pipeline():
 
 def test_evaluate_warns_about_another_embedder_and_rejects_missing_splits(caplog):
     data = _embedded()
-    sae = MedSAE(d_in=8, n_latents=24, k=4, embedder="another-embedder")
-    with caplog.at_level(logging.WARNING, logger="medsae.metrics"):
+    sae = DoctoSAE(d_in=8, n_latents=24, k=4, embedder="another-embedder")
+    with caplog.at_level(logging.WARNING, logger="doctosae.metrics"):
         evaluate(sae, data, "test")
     assert "another-embedder" in caplog.text
     with pytest.raises(ValueError, match="no 'val' queries"):
@@ -207,7 +207,7 @@ def test_evaluate_warns_about_another_embedder_and_rejects_missing_splits(caplog
 
 def test_block_wise_ndcg_equals_one_block(monkeypatch):
     data = _embedded(n_docs=50, n_queries=12)
-    sae = MedSAE(d_in=8, n_latents=32, k=3)
+    sae = DoctoSAE(d_in=8, n_latents=32, k=3)
     query_codes, corpus_codes = encode_corpus(sae, data.queries["test"]), encode_corpus(sae, data.corpus)
     judgments = Judgments.from_dataset(data.dataset, "test")
     one_block = pool_ndcg(query_codes, corpus_codes, judgments)

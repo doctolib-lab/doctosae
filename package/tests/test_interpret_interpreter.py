@@ -10,17 +10,17 @@ import pandas as pd
 import pytest
 import torch
 
-from medsae.data.dataset import EmbeddedDataset, RetrievalDataset
-from medsae.interpret import FakeLLM, FeatureCard, Interpreter, load_cards
-from medsae.interpret.cards import LABEL_ERROR
-from medsae.interpret.prompts import (
+from doctosae.data.dataset import EmbeddedDataset, RetrievalDataset
+from doctosae.interpret import FakeLLM, FeatureCard, Interpreter, load_cards
+from doctosae.interpret.cards import LABEL_ERROR
+from doctosae.interpret.prompts import (
     OOD_NOTE,
     interpreter_system_prompt,
     interpreter_user_prompt,
     label_instruction,
 )
-from medsae.interpret.scoring import exemplars
-from medsae.sae import MedSAE
+from doctosae.interpret.scoring import exemplars
+from doctosae.sae import DoctoSAE
 
 D_IN, N_LATENTS, K = 16, 48, 6
 TOPICS = {
@@ -97,9 +97,9 @@ def data() -> EmbeddedDataset:
 
 
 @pytest.fixture(scope="module")
-def sae() -> MedSAE:
+def sae() -> DoctoSAE:
     torch.manual_seed(0)
-    return MedSAE(d_in=D_IN, n_latents=N_LATENTS, k=K, embedder="toy-encoder")
+    return DoctoSAE(d_in=D_IN, n_latents=N_LATENTS, k=K, embedder="toy-encoder")
 
 
 @pytest.fixture(scope="module")
@@ -243,7 +243,7 @@ def test_in_domain_score_excludes_what_the_interpreter_saw(interpreter, data, ca
 
 
 def test_another_object_of_the_same_dataset_is_scored_in_domain(interpreter, data, cards, caplog):
-    with caplog.at_level("WARNING", logger="medsae.interpret.interpreter"):
+    with caplog.at_level("WARNING", logger="doctosae.interpret.interpreter"):
         copied = interpreter.score(cards, FakeLLM(), data=copy.copy(data), methods=["tfidf"])
     reference = interpreter.score(cards, FakeLLM(), methods=["tfidf"])
     assert not copied.out_of_domain and "scored in domain" in caplog.text
@@ -320,28 +320,28 @@ def test_cards_round_trip_through_json(interpreter, cards, tmp_path):
 
 
 def test_embedder_aliases_are_resolved_before_warning(data, caplog):
-    sae = MedSAE(d_in=D_IN, n_latents=N_LATENTS, k=K, embedder="bge")
+    sae = DoctoSAE(d_in=D_IN, n_latents=N_LATENTS, k=K, embedder="bge")
     aliased = EmbeddedDataset(data.dataset, "BAAI/bge-large-en-v1.5", data.corpus, dict(data.queries))
-    with caplog.at_level("WARNING", logger="medsae"):
+    with caplog.at_level("WARNING", logger="doctosae"):
         Interpreter(sae, aliased, show_progress=False)
     assert "trained on" not in caplog.text
-    with caplog.at_level("WARNING", logger="medsae"):
+    with caplog.at_level("WARNING", logger="doctosae"):
         Interpreter(sae, data, show_progress=False)
     assert "trained on bge embeddings" in caplog.text
 
 
 def test_other_embedding_settings_are_flagged(data, caplog):
-    sae = MedSAE(d_in=D_IN, n_latents=N_LATENTS, k=K, embedder="toy-encoder", query_instruction="query: ")
+    sae = DoctoSAE(d_in=D_IN, n_latents=N_LATENTS, k=K, embedder="toy-encoder", query_instruction="query: ")
     other = EmbeddedDataset(
         data.dataset, "toy-encoder", data.corpus, dict(data.queries), query_instruction=""
     )
-    with caplog.at_level("WARNING", logger="medsae"):
+    with caplog.at_level("WARNING", logger="doctosae"):
         Interpreter(sae, other, show_progress=False)
     assert "query_instruction 'query: ' against ''" in caplog.text
 
 
 def test_explain_builds_the_sae_encoder_on_the_interpreter_device(sae, data, monkeypatch):
-    import medsae.embed
+    import doctosae.embed
 
     built = {}
 
@@ -357,7 +357,7 @@ def test_explain_builds_the_sae_encoder_on_the_interpreter_device(sae, data, mon
         def encode_documents(self, texts):
             return data.corpus[:1]
 
-    monkeypatch.setattr(medsae.embed, "Embedder", RecordingEmbedder)
+    monkeypatch.setattr(doctosae.embed, "Embedder", RecordingEmbedder)
     interpreter = Interpreter(sae, data, split=None, device="cpu", show_progress=False)
     interpreter.explain("an unseen question", "an unseen passage", data.dataset.corpus["text"][5])
     assert built == {"device": "cpu", "show_progress": False}
@@ -368,7 +368,7 @@ def test_input_checks(sae, data):
         Interpreter(sae, data, split="val")
     with pytest.raises(ValueError, match="corpus split"):
         Interpreter(sae, data, corpus_split="test")
-    small = MedSAE(d_in=D_IN + 1, n_latents=8, k=2)
+    small = DoctoSAE(d_in=D_IN + 1, n_latents=8, k=2)
     with pytest.raises(ValueError, match="dimensional"):
         Interpreter(small, data)
     documents_only = Interpreter(sae, data, split=None, show_progress=False)

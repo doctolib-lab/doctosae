@@ -1,7 +1,7 @@
 """In memory containers for retrieval benchmarks and their dense embeddings.
 
-Every loader of :mod:`medsae.data` returns a :class:`RetrievalDataset`; :class:`medsae.Embedder` turns it into
-an :class:`EmbeddedDataset`, which is what training, evaluation and interpretation consume.
+Every loader of :mod:`doctosae.data` returns a :class:`RetrievalDataset`; :class:`doctosae.Embedder` turns it
+into an :class:`EmbeddedDataset`, which is what training, evaluation and interpretation consume.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from medsae._ids import embedding_settings
+from doctosae._ids import embedding_settings
 
 __all__ = ["RetrievalDataset", "EmbeddedDataset", "SPLIT_ORDER", "texts_digest"]
 
@@ -44,8 +44,8 @@ class RetrievalDataset:
         qrels: Split name to a frame with columns ``query_id`` (str), ``doc_id`` (str) and ``score`` (int).
         corpus_splits: Optional split name to row indices into ``corpus``. ``"train"`` rows feed the
             reconstruction and contrastive terms; ``"val"`` rows are held out. Retrieval always scores against
-            the full corpus. When ``None``, :func:`medsae.data.splits.split_corpus` builds the paper split on
-            demand.
+            the full corpus. When ``None``, :func:`doctosae.data.splits.split_corpus` builds the paper split
+            on demand.
         positive_threshold: A judgment is a positive (training pair, relevant for recall) when
             ``score >= positive_threshold``. Every benchmark of the paper uses ``score > 0``.
         license: License of the benchmark, reported to users and copied to the cards of models trained on it.
@@ -170,8 +170,8 @@ class EmbeddedDataset:
         query_instruction: Instruction prepended to queries before embedding: ``""`` for none, ``None`` when
             unknown (arrays built by hand).
         embedding: Settings of the embedder that change the vectors (model, revision, instructions,
-            normalization, truncation), as :attr:`medsae.Embedder.config` records them; ``None`` when unknown.
-            Training copies them to the SAE, and evaluation warns when an SAE meets other settings.
+            normalization, truncation), as :attr:`doctosae.Embedder.config` records them; ``None`` when
+            unknown. Training copies them to the SAE, and evaluation warns when an SAE meets other settings.
     """
 
     dataset: RetrievalDataset

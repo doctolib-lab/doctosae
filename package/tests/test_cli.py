@@ -1,4 +1,4 @@
-"""Tests of the ``medsae`` command line.
+"""Tests of the ``doctosae`` command line.
 
 Offline: the help of every command, the dataset registry listing, the conversion of a synthetic paper
 checkpoint, the arguments of a Hub upload (the upload itself is replaced, nothing leaves the machine) and the
@@ -19,12 +19,12 @@ import numpy as np
 import pytest
 import torch
 
-import medsae
-from medsae import cli
-from medsae.data import EmbeddedDataset, load_dataset
-from medsae.interpret import load_cards
-from medsae.sae import MedSAE
-from medsae.training import TrainingConfig
+import doctosae
+from doctosae import cli
+from doctosae.data import EmbeddedDataset, load_dataset
+from doctosae.interpret import load_cards
+from doctosae.sae import DoctoSAE
+from doctosae.training import TrainingConfig
 
 COMMANDS = ("datasets", "pretrained", "embed", "train", "evaluate", "interpret", "explain", "push", "convert")
 REGISTRY = ("cure", "nfcorpus", "miriad", "r2med_biology", "r2med_bioinformatics", "r2med_medical_sciences")
@@ -39,14 +39,14 @@ TOPICS = {
 
 @pytest.fixture(autouse=True)
 def keep_log_level():
-    """`medsae.cli.main` sets the level of the medsae logger: give it back to the other test modules."""
-    level = logging.getLogger("medsae").level
+    """`doctosae.cli.main` sets the level of the doctosae logger: give it back to the other test modules."""
+    level = logging.getLogger("doctosae").level
     yield
-    logging.getLogger("medsae").setLevel(level)
+    logging.getLogger("doctosae").setLevel(level)
 
 
 def run(capsys: pytest.CaptureFixture[str], *argv: str) -> tuple[int, str, str]:
-    """Run ``medsae *argv`` in process; return the exit code, stdout and stderr."""
+    """Run ``doctosae *argv`` in process; return the exit code, stdout and stderr."""
     code = cli.main([str(arg) for arg in argv])
     out, err = capsys.readouterr()
     return code, out, err
@@ -71,24 +71,24 @@ def test_help_lists_every_command(capsys):
 @pytest.mark.parametrize("command", COMMANDS)
 def test_every_command_has_help(command, capsys):
     text = help_text(capsys, command)
-    assert text.startswith(f"usage: medsae {command}")
-    assert "medsae." in text  # the help names the Python function behind the command
+    assert text.startswith(f"usage: doctosae {command}")
+    assert "doctosae." in text  # the help names the Python function behind the command
 
 
 def test_version(capsys):
     with pytest.raises(SystemExit) as stop:
         cli.main(["--version"])
     assert stop.value.code == 0
-    assert capsys.readouterr().out.strip() == f"medsae {medsae.__version__}"
+    assert capsys.readouterr().out.strip() == f"doctosae {doctosae.__version__}"
 
 
 def test_help_does_not_import_heavy_libraries():
-    """``medsae --help`` must stay fast: no torch, sentence transformers or datasets at import time."""
+    """``doctosae --help`` must stay fast: no torch, sentence transformers or datasets at import time."""
     code = (
         "import sys\n"
-        "import medsae.cli\n"
+        "import doctosae.cli\n"
         "try:\n"
-        "    medsae.cli.main(['--help'])\n"
+        "    doctosae.cli.main(['--help'])\n"
         "except SystemExit:\n"
         "    pass\n"
         "heavy = ('torch', 'sentence_transformers', 'datasets', 'transformers', 'pandas')\n"
@@ -113,13 +113,13 @@ def test_missing_command_is_an_error(capsys):
 
 
 def test_public_names_resolve():
-    assert set(medsae.__all__) == {"__version__", *medsae._EXPORTS}
-    for name in medsae.__all__:
-        assert getattr(medsae, name) is not None
-    assert medsae.EmbeddedDataset is medsae.embed.EmbeddedDataset is medsae.data.EmbeddedDataset
-    assert medsae.MedSAE is MedSAE
+    assert set(doctosae.__all__) == {"__version__", *doctosae._EXPORTS}
+    for name in doctosae.__all__:
+        assert getattr(doctosae, name) is not None
+    assert doctosae.EmbeddedDataset is doctosae.embed.EmbeddedDataset is doctosae.data.EmbeddedDataset
+    assert doctosae.DoctoSAE is DoctoSAE
     with pytest.raises(AttributeError):
-        _ = medsae.not_a_public_name
+        _ = doctosae.not_a_public_name
 
 
 def test_paper_values_in_the_help_are_the_training_defaults():
@@ -137,7 +137,7 @@ def test_train_help_shows_the_paper_grid_without_exponents(capsys):
 def test_help_never_breaks_an_id_across_lines(capsys, monkeypatch):
     monkeypatch.setenv("COLUMNS", "80")
     lines = help_text(capsys, "push").splitlines()
-    assert any("my-org/medsae-bge-large-en-v1.5-k64" in line for line in lines)
+    assert any("my-org/doctosae-bge-large-en-v1.5-k64" in line for line in lines)
     assert any("cc-by-nc-4.0" in line for line in lines)
 
 
@@ -157,7 +157,7 @@ def test_pretrained_names_a_checkpoint(capsys, monkeypatch):
             pass
 
         def list_repo_files(self, repo_id, revision=None):
-            assert repo_id == "doctolib-lab/medsae-bge-large-en-v1.5"
+            assert repo_id == "doctolib-lab/doctosae-bge-large-en-v1.5"
             return [
                 "k64_m3072/cfg.json",
                 "k64_m3072/sae.safetensors",
@@ -165,21 +165,21 @@ def test_pretrained_names_a_checkpoint(capsys, monkeypatch):
                 "k256_m3072/sae.safetensors",
             ]
 
-    monkeypatch.setattr("medsae.hub.HfApi", FakeApi)
+    monkeypatch.setattr("doctosae.hub.HfApi", FakeApi)
     code, out, _ = run(capsys, "pretrained", "--embedder", "bge", "--k", "256")
     assert code == 0
-    assert out.strip() == "doctolib-lab/medsae-bge-large-en-v1.5/k256_m3072"
+    assert out.strip() == "doctolib-lab/doctosae-bge-large-en-v1.5/k256_m3072"
     code, out, err = run(capsys, "pretrained", "--embedder", "bge", "--k", "128")
     assert code == 1 and "k=128" in err
 
 
 @pytest.mark.network
 def test_pretrained_loads_a_released_checkpoint():
-    from medsae.hub import load_pretrained
+    from doctosae.hub import load_pretrained
 
     sae = load_pretrained("bge", k=64)
     assert (sae.d_in, sae.n_latents, sae.k) == (1024, 3072, 64)
-    assert sae.metadata["hub_checkpoint"] == "doctolib-lab/medsae-bge-large-en-v1.5/k64_m3072"
+    assert sae.metadata["hub_checkpoint"] == "doctolib-lab/doctosae-bge-large-en-v1.5/k64_m3072"
 
 
 # Paper checkpoint conversion
@@ -212,7 +212,7 @@ def test_convert_round_trip(tmp_path, capsys):
     assert "Converted" in out
     assert {"config.json", "model.safetensors", "README.md"} <= {p.name for p in (tmp_path / "sae").iterdir()}
 
-    sae = MedSAE.from_pretrained(tmp_path / "sae")
+    sae = DoctoSAE.from_pretrained(tmp_path / "sae")
     for key, value in state.items():
         torch.testing.assert_close(sae.state_dict()[key], value)
     assert (sae.d_in, sae.n_latents, sae.k, sae.activation) == (8, 24, 4, "relu")
@@ -242,37 +242,39 @@ def test_convert_refuses_a_folder_in_use(tmp_path, capsys):
 def test_convert_reports_a_missing_folder(tmp_path, capsys):
     code, _, err = run(capsys, "convert", tmp_path / "nowhere", tmp_path / "sae")
     assert code == 1
-    assert err.startswith("medsae convert: error:")
+    assert err.startswith("doctosae convert: error:")
 
 
 def test_a_missing_local_sae_is_not_looked_up_on_the_hub(pipeline, tmp_path, capsys):
     code, _, err = run(capsys, "evaluate", *data_args(pipeline), "--sae", tmp_path / "runs" / "missing")
     assert code == 1
-    assert "no MedSAE folder" in err
+    assert "no DoctoSAE folder" in err
 
 
 # Hub upload (replaced by a recorder)
 
 
 def test_push_is_private_unless_public(tmp_path, capsys, monkeypatch):
-    MedSAE(d_in=8, n_latents=24, k=4, metadata={"license": "cc-by-nc-4.0"}).save_pretrained(tmp_path / "sae")
+    DoctoSAE(d_in=8, n_latents=24, k=4, metadata={"license": "cc-by-nc-4.0"}).save_pretrained(
+        tmp_path / "sae"
+    )
     calls = []
 
     def record(sae, repo_id, **kwargs):
         calls.append((sae, repo_id, kwargs))
         return f"https://huggingface.co/{repo_id}/commit/0"
 
-    monkeypatch.setattr("medsae.hub.push_to_hub", record)
+    monkeypatch.setattr("doctosae.hub.push_to_hub", record)
 
-    code, out, _ = run(capsys, "push", tmp_path / "sae", "someone/medsae-test")
+    code, out, _ = run(capsys, "push", tmp_path / "sae", "someone/doctosae-test")
     assert code == 0
     sae, repo_id, kwargs = calls[-1]
-    assert isinstance(sae, MedSAE) and repo_id == "someone/medsae-test"
+    assert isinstance(sae, DoctoSAE) and repo_id == "someone/doctosae-test"
     assert kwargs == {"private": True}
     assert "(private)" in out
 
     code, out, _ = run(
-        capsys, "push", tmp_path / "sae", "someone/medsae-test", "--public", "--license", "cc-by-4.0",
+        capsys, "push", tmp_path / "sae", "someone/doctosae-test", "--public", "--license", "cc-by-4.0",
         "--datasets", "R2MED/Biology", "--commit-message", "first upload",
     )  # fmt: skip
     assert code == 0
@@ -284,8 +286,8 @@ def test_push_is_private_unless_public(tmp_path, capsys, monkeypatch):
     }
     assert "(public)" in out
 
-    code, _, err = run(capsys, "push", tmp_path / "missing", "someone/medsae-test")
-    assert code == 1 and "not a MedSAE folder" in err
+    code, _, err = run(capsys, "push", tmp_path / "missing", "someone/doctosae-test")
+    assert code == 1 and "not a DoctoSAE folder" in err
     assert len(calls) == 2  # nothing was pushed
 
 
@@ -316,7 +318,7 @@ def write_beir_folder(folder: Path, seed: int = 0) -> None:
 
 
 def write_embeddings(folder: Path, beir: Path, dim: int = 16, seed: int = 1) -> None:
-    """Unit vectors around one center per topic, saved as `medsae embed` saves them."""
+    """Unit vectors around one center per topic, saved as `doctosae embed` saves them."""
     dataset = load_dataset(beir)
     rng = np.random.default_rng(seed)
     centers = {topic: rng.normal(size=dim) for topic in TOPICS}
@@ -332,18 +334,18 @@ def write_embeddings(folder: Path, beir: Path, dim: int = 16, seed: int = 1) -> 
 
 @pytest.fixture(scope="module")
 def pipeline(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
-    """A synthetic BEIR folder, its embeddings and an SAE trained on them with `medsae train`."""
+    """A synthetic BEIR folder, its embeddings and an SAE trained on them with `doctosae train`."""
     root = tmp_path_factory.mktemp("pipeline")
     paths = {"beir": root / "beir", "embeddings": root / "embeddings", "sae": root / "sae"}
     write_beir_folder(paths["beir"])
     write_embeddings(paths["embeddings"], paths["beir"])
-    level = logging.getLogger("medsae").level
+    level = logging.getLogger("doctosae").level
     code = cli.main(
         ["train", "--dataset", str(paths["beir"]), "--embeddings", str(paths["embeddings"]),
          "--output-dir", str(paths["sae"]), "--k", "4", "--epochs", "6", "--batch-size", "16",
          "--eval-every", "4", "--device", "cpu", "--no-progress", "-q"]
     )  # fmt: skip
-    logging.getLogger("medsae").setLevel(level)
+    logging.getLogger("doctosae").setLevel(level)
     assert code == 0
     return paths
 
@@ -357,7 +359,7 @@ def test_train_saves_the_selected_checkpoint(pipeline):
     sae_dir = pipeline["sae"]
     names = {p.name for p in sae_dir.iterdir()}
     assert {"config.json", "model.safetensors", "README.md", "history.json", "summary.json"} <= names
-    sae = MedSAE.from_pretrained(sae_dir)
+    sae = DoctoSAE.from_pretrained(sae_dir)
     assert (sae.d_in, sae.n_latents, sae.k) == (16, 48, 4)
     assert sae.embedder == "synthetic_encoder"
     summary = json.loads((sae_dir / "summary.json").read_text())
@@ -370,7 +372,7 @@ def test_evaluate_sparse_codes_and_dense_embeddings(pipeline, tmp_path, capsys):
     code, out, err = run(capsys, "evaluate", *data_args(pipeline), "--sae", pipeline["sae"], "--output",
                          tmp_path / "sparse.json")  # fmt: skip
     assert code == 0, err
-    assert "MedSAE sparse codes" in out
+    assert "DoctoSAE sparse codes" in out
     sparse = json.loads((tmp_path / "sparse.json").read_text())
     assert 0 < sparse["ndcg@10"] <= 1 and sparse["n_queries"] == 8
 
@@ -380,7 +382,7 @@ def test_evaluate_sparse_codes_and_dense_embeddings(pipeline, tmp_path, capsys):
 
 
 def test_evaluate_rejects_an_sae_of_another_size(pipeline, tmp_path, capsys):
-    MedSAE(d_in=8, n_latents=24, k=4).save_pretrained(tmp_path / "small")
+    DoctoSAE(d_in=8, n_latents=24, k=4).save_pretrained(tmp_path / "small")
     code, _, err = run(capsys, "evaluate", *data_args(pipeline), "--sae", tmp_path / "small")
     assert code == 1
     assert "8 dimensional" in err

@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent
 EXAMPLE_CASES = ROOT / "data" / "example_cases.json"
 BUILT_CASES = ROOT / "data" / "cases.json"  # default output of scripts/build_cases.py, ignored by git
 
-DEFAULT_TITLE = "MedSAE feature annotation"
+DEFAULT_TITLE = "DoctoSAE feature annotation"
 STUDY_ANSWERS = "answers.csv"
 DEMO_ANSWERS = "answers_demo.csv"
 DEFAULT_WORKSHEET = "annotations"

@@ -1,8 +1,8 @@
-# MedSAE annotation app
+# DoctoSAE annotation app
 
 A Streamlit app to collect clinician judgments of the feature descriptions of *Explanations that Transfer:
 Interpreting Medical Retrieval with Sparse AutoEncoders*. See the [repository README](../README.md) for the paper and
-the `medsae` package.
+the `doctosae` package.
 
 ## What the study measures
 
@@ -46,7 +46,7 @@ the secrets value wins, because Streamlit copies top level secrets into the envi
 
 | key | default | effect |
 | --- | --- | --- |
-| `APP_TITLE` | `MedSAE feature annotation` | page title and headings |
+| `APP_TITLE` | `DoctoSAE feature annotation` | page title and headings |
 | `STUDY_NAME` | empty | adds "Thank you for helping with {STUDY_NAME}." to the introduction |
 | `APP_PASSWORD` | empty | when set, a shared access code screen comes first |
 | `ANNOTATORS` | empty | names or codes offered in a picker (a TOML list, or comma separated in the environment); empty means a free text field, recommended only for trials |
@@ -101,12 +101,12 @@ The sidebar tells annotators where answers go ("local CSV file" or "Google Sheet
 ## Build real cases
 
 `scripts/build_cases.py` turns interpretability outputs into `data/cases.json`, which the app then picks up on
-its own. It imports neither streamlit nor `medsae`. Keep its inputs and outputs under `data/` as below: that folder
+its own. It imports neither streamlit nor `doctosae`. Keep its inputs and outputs under `data/` as below: that folder
 is ignored by git, and so are `features/` and Markdown files at the root of this folder, because they hold corpus
 passages and LLM outputs that this code only release must not carry. Give exactly one input:
 
 ```bash
-# outputs of the medsae package: medsae interpret --llm ... --score --output data/features
+# outputs of the doctosae package: doctosae interpret --llm ... --score --output data/features
 python scripts/build_cases.py --cards data/features/cards.json --scores data/features/scores.json
 # outputs of the paper code (paper/scripts/run_interpretability_pipeline.sh)
 python scripts/build_cases.py --labels RUN/interpretation/labels.json \
@@ -116,14 +116,14 @@ python scripts/build_cases.py --from-markdown data/top60.md
 ```
 
 Each feature gives one case, with a passage whose label is drawn at random, so the default 30 balanced cases need
-well over 30 features that have a description and judged passages of both labels. Run `medsae interpret` without
+well over 30 features that have a description and judged passages of both labels. Run `doctosae interpret` without
 `--n-features`, or with 60 or more.
 
 Shared options: `--top 60` features kept by r, `--n-cases 30` cases drawn, `--seed 42`, `--max-chars 300`
 characters shown per passage, `--out data/cases.json`, `--dataset NAME` for the review file title, and
 `--markdown PATH` to also write the ranked features as a review file that `--from-markdown` reads back.
 
-With the medsae or paper inputs the script
+With the doctosae or paper inputs the script
 
 1. keeps only the scores of the Interpreter LLM descriptions (`llm`) and refuses the shuffled description
    control;
@@ -137,9 +137,9 @@ With the medsae or paper inputs the script
 
 Input contracts:
 
-* `--cards`: the `cards.json` of `medsae interpret` (`save_cards`), or a plain JSON list of
+* `--cards`: the `cards.json` of `doctosae interpret` (`save_cards`), or a plain JSON list of
   `FeatureCard.to_dict()`; the fields used are `feature`, `topic`, `description` and `keywords`.
-* `--scores`: the `scores.json` of `medsae interpret --score` (`ScoreReport.to_dict()`). It must include the
+* `--scores`: the `scores.json` of `doctosae interpret --score` (`ScoreReport.to_dict()`). It must include the
   `llm` method: the records of `predictions["llm"]` (`feature`, `row`, `source`, `text`, `ground_truth`,
   `score`, `parse_error`, and `error` for a failed request) are the judged pairs, and `per_feature["llm"]` gives
   the stored r.

@@ -2,8 +2,8 @@
 
 Every backend implements :class:`LLM`: raw text replies to one system prompt and a batch of user turns. The
 prompts end by asking for a JSON object, and the replies are parsed as text by the same functions whatever the
-backend (:func:`medsae.interpret.labeling.parse_label`, :func:`medsae.interpret.scoring.parse_score`), which
-is how the paper produced every number.
+backend (:func:`doctosae.interpret.labeling.parse_label`, :func:`doctosae.interpret.scoring.parse_score`),
+which is how the paper produced every number.
 
 * :class:`TransformersLLM` runs a local chat model with greedy decoding, as the paper did with
   ``google/medgemma-4b-it`` (bf16, 400 new tokens, left padded batches).
@@ -28,7 +28,7 @@ from contextlib import contextmanager
 from typing import Any, Protocol, runtime_checkable
 from urllib.parse import urlsplit
 
-from medsae.interpret.prompts import NEGATIVES_HEADER, SCORE_INSTRUCTION
+from doctosae.interpret.prompts import NEGATIVES_HEADER, SCORE_INSTRUCTION
 
 __all__ = ["LLM", "FakeLLM", "OpenAICompatibleLLM", "PartialReplies", "TransformersLLM", "generate_isolated"]
 
@@ -116,7 +116,7 @@ class TransformersLLM:
             import torch
             import transformers
         except ImportError as error:
-            message = "TransformersLLM needs transformers: pip install 'medsae[local-llm]'"
+            message = "TransformersLLM needs transformers: pip install 'doctosae[local-llm]'"
             raise ImportError(message) from error
         self.deterministic = bool(deterministic)
         self.model_name = model
@@ -230,7 +230,7 @@ class OpenAICompatibleLLM:
             try:
                 from openai import OpenAI
             except ImportError as error:
-                raise ImportError("OpenAICompatibleLLM needs openai: pip install 'medsae[llm]'") from error
+                raise ImportError("OpenAICompatibleLLM needs openai: pip install 'doctosae[llm]'") from error
             base_url = base_url or os.environ.get("OPENAI_BASE_URL")
             if not base_url:
                 raise ValueError(

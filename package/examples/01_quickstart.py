@@ -1,4 +1,4 @@
-"""Quickstart: train a MedSAE on NFCorpus and compare its retrieval with the dense embeddings.
+"""Quickstart: train a DoctoSAE on NFCorpus and compare its retrieval with the dense embeddings.
 
 The small encoder ``BAAI/bge-small-en-v1.5`` (384 dimensions) keeps the whole run, downloads included, to a
 few minutes on a laptop CPU. The paper trains on CURE with ``BAAI/bge-large-en-v1.5``: see
@@ -19,11 +19,11 @@ from pathlib import Path
 
 import torch
 
-from medsae import (
+from doctosae import (
+    DoctoSAE,
     EmbeddedDataset,
     Embedder,
     Interpreter,
-    MedSAE,
     RetrievalDataset,
     Trainer,
     TrainingConfig,
@@ -35,7 +35,7 @@ ENCODER = "BAAI/bge-small-en-v1.5"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train a MedSAE on NFCorpus with a small encoder.")
+    parser = argparse.ArgumentParser(description="Train a DoctoSAE on NFCorpus with a small encoder.")
     parser.add_argument("--output", type=Path, default=Path("runs/quickstart"), help="output folder")
     parser.add_argument("--k", type=int, default=32, help="active features per embedding (default: 32)")
     parser.add_argument(
@@ -70,7 +70,7 @@ def embed(dataset: RetrievalDataset, folder: Path, device: str | None) -> Embedd
 def main() -> None:
     args = parse_args()
     logging.basicConfig(format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    logging.getLogger("medsae").setLevel(logging.INFO)  # progress of medsae, warnings only from libraries
+    logging.getLogger("doctosae").setLevel(logging.INFO)  # progress of doctosae, warnings only from libraries
 
     # 1. NFCorpus: 3,633 documents, train, val and test queries with graded relevance judgments.
     dataset = load_dataset("nfcorpus")
@@ -82,7 +82,7 @@ def main() -> None:
 
     # 3. A TopK SAE with m = 3d features, k of which are active for any text.
     torch.manual_seed(args.seed)
-    sae = MedSAE(
+    sae = DoctoSAE(
         d_in=data.dim,
         n_latents=args.expansion * data.dim,
         k=args.k,
@@ -102,7 +102,7 @@ def main() -> None:
     sparse = evaluate(sae, data, split="test", device=args.device)
     print(f"\n{'NFCorpus test':<34}{'NDCG@10':>9}{'recall@100':>12}")
     print(f"{'dense ' + data.embedder:<34}{dense['ndcg@10']:>9.4f}{dense['recall@100']:>12.4f}")
-    print(f"{f'MedSAE, k = {sae.k}':<34}{sparse['ndcg@10']:>9.4f}{sparse['recall@100']:>12.4f}")
+    print(f"{f'DoctoSAE, k = {sae.k}':<34}{sparse['ndcg@10']:>9.4f}{sparse['recall@100']:>12.4f}")
 
     # 6. A first look at three features: the texts they fire on most and their TF IDF terms.
     interpreter = Interpreter(sae, data, split="train", device=args.device)

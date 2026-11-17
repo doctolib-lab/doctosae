@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from medsae.data import RetrievalDataset, ids_sha256, split_corpus, split_queries
+from doctosae.data import RetrievalDataset, ids_sha256, split_corpus, split_queries
 
 
 def paper_split_queries(df, train_frac, val_frac, seed, id_col, group_by_col):

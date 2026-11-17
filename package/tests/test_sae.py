@@ -1,4 +1,4 @@
-"""MedSAE model: TopK encoding, decoder constraints, b_pre initialisation and Hub serialisation (offline)."""
+"""DoctoSAE model: TopK encoding, decoder constraints, b_pre initialisation, Hub serialisation (offline)."""
 
 import json
 
@@ -7,12 +7,12 @@ import pytest
 import torch
 from safetensors.torch import save_file
 
-from medsae.sae import MedSAE, geometric_median
+from doctosae.sae import DoctoSAE, geometric_median
 
 
-def _sae(d_in: int = 8, n_latents: int = 24, k: int = 4, seed: int = 0, **kwargs) -> MedSAE:
+def _sae(d_in: int = 8, n_latents: int = 24, k: int = 4, seed: int = 0, **kwargs) -> DoctoSAE:
     torch.manual_seed(seed)
-    return MedSAE(d_in=d_in, n_latents=n_latents, k=k, **kwargs)
+    return DoctoSAE(d_in=d_in, n_latents=n_latents, k=k, **kwargs)
 
 
 def test_parameters_are_named_like_the_paper_code():
@@ -148,11 +148,11 @@ def test_save_and_load_round_trip(tmp_path):
     sae.save_pretrained(tmp_path)
     config = json.loads((tmp_path / "config.json").read_text())
     assert config["d_in"] == 8 and config["n_latents"] == 24 and config["query_instruction"] == "q: "
-    loaded = MedSAE.from_pretrained(tmp_path)
+    loaded = DoctoSAE.from_pretrained(tmp_path)
     assert (loaded.k, loaded.embedder, loaded.metadata) == (4, sae.embedder, sae.metadata)
     for name, tensor in sae.state_dict().items():
         assert torch.equal(loaded.state_dict()[name], tensor)
-    assert MedSAE.from_pretrained(tmp_path, k=2).k == 2
+    assert DoctoSAE.from_pretrained(tmp_path, k=2).k == 2
     card = (tmp_path / "README.md").read_text()
     assert "license: cc-by-nc-4.0" in card and "clinia/CUREv1" in card
     assert "base_model: BAAI/bge-large-en-v1.5" in card and "base_model_relation: adapter" in card
@@ -176,22 +176,22 @@ def test_model_card_text_carries_the_terms_of_the_training_data():
 def test_loading_a_local_folder_prints_nothing(tmp_path, capsys):
     sae = _sae()
     sae.save_pretrained(tmp_path)
-    loaded = MedSAE.from_pretrained(tmp_path)
+    loaded = DoctoSAE.from_pretrained(tmp_path)
     assert capsys.readouterr().out == "" and not loaded.training
     assert torch.equal(loaded.encoder.weight, sae.encoder.weight)
 
 
 def test_model_card_defaults_to_the_package_license():
     card = _sae().generate_model_card()
-    assert card.data.license == "apache-2.0" and card.data.library_name == "medsae"
+    assert card.data.license == "apache-2.0" and card.data.library_name == "doctosae"
 
 
 def test_loading_fails_loudly(tmp_path):
     with pytest.raises(FileNotFoundError, match="config.json"):
-        MedSAE.from_pretrained(tmp_path)
+        DoctoSAE.from_pretrained(tmp_path)
     sae = _sae()
     sae.save_pretrained(tmp_path)
     state = {name: tensor for name, tensor in sae.state_dict().items() if name != "b_pre"}
     save_file(state, tmp_path / "model.safetensors")
     with pytest.raises(RuntimeError, match="b_pre"):
-        MedSAE.from_pretrained(tmp_path)
+        DoctoSAE.from_pretrained(tmp_path)

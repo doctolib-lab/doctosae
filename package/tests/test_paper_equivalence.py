@@ -15,21 +15,27 @@ import pytest
 import scipy.sparse as sp
 import torch
 
-from medsae.data.dataset import EmbeddedDataset, RetrievalDataset
-from medsae.hub import from_paper_checkpoint
-from medsae.metrics import Judgments, evaluate, ndcg_at_k, ranking_metrics
-from medsae.retrieval import cosine_scores, encode_corpus
-from medsae.sae import MedSAE, geometric_median
-from medsae.training import TrainingConfig
-from medsae.training.losses import (
+from doctosae.data.dataset import EmbeddedDataset, RetrievalDataset
+from doctosae.hub import from_paper_checkpoint
+from doctosae.metrics import Judgments, evaluate, ndcg_at_k, ranking_metrics
+from doctosae.retrieval import cosine_scores, encode_corpus
+from doctosae.sae import DoctoSAE, geometric_median
+from doctosae.training import TrainingConfig
+from doctosae.training.losses import (
     info_nce_loss,
     positive_mask,
     reconstruction_loss,
     squared_error,
     weighted_loss,
 )
-from medsae.training.sampling import PairBatch, PairBatchSampler, iter_forever, positive_pairs, positive_sets
-from medsae.training.trainer import build_optimizer, train_step
+from doctosae.training.sampling import (
+    PairBatch,
+    PairBatchSampler,
+    iter_forever,
+    positive_pairs,
+    positive_sets,
+)
+from doctosae.training.trainer import build_optimizer, train_step
 
 PAPER_DIR = Path(__file__).resolve().parents[2] / "paper"
 if not (PAPER_DIR / "src" / "utils").is_dir():
@@ -49,12 +55,12 @@ finally:
 CPU = torch.device("cpu")
 
 
-def _models(d: int = 12, m: int = 36, k: int = 5, seed: int = 0) -> tuple[torch.nn.Module, MedSAE]:
-    """The paper model and a MedSAE built from the same seed (both draw their weights in the same order)."""
+def _models(d: int = 12, m: int = 36, k: int = 5, seed: int = 0) -> tuple[torch.nn.Module, DoctoSAE]:
+    """The paper model and a DoctoSAE built from the same seed (both draw their weights in the same order)."""
     torch.manual_seed(seed)
     paper = paper_arch.TopkNoReluSparseAutoencoder(d, m, k=k, activation_fn="relu", init="default")
     torch.manual_seed(seed)
-    return paper, MedSAE(d_in=d, n_latents=m, k=k)
+    return paper, DoctoSAE(d_in=d, n_latents=m, k=k)
 
 
 def _random_pairs(n_queries: int, n_docs: int, seed: int) -> np.ndarray:
@@ -314,7 +320,7 @@ def test_training_steps_match_the_paper(k_aux):
         torch.testing.assert_close(sae.state_dict()[name], tensor, rtol=1e-5, atol=1e-6)
 
 
-def test_paper_checkpoints_load_into_medsae(tmp_path):
+def test_paper_checkpoints_load_into_doctosae(tmp_path):
     paper, _ = _models(seed=7)
     paper.set_b_pre(torch.randn(12))
     config = {"input_dim": 12, "hidden": 36, "sparsity_type": "topknorelu", "k": 5, "activation_fn": "relu"}
@@ -397,8 +403,8 @@ def _write_replay_data(folder: Path) -> tuple[EmbeddedDataset, np.ndarray]:
 @pytest.mark.parametrize(("lam", "k_aux"), [(0.01, None), (0.0, 12)], ids=["infonce", "auxk_without_infonce"])
 def test_trainer_fit_replays_the_paper_training_loop(lam, k_aux, tmp_path, monkeypatch):
     """The paper's train_sae.main() records its batches; Trainer.fit replays them and must end identical."""
-    import medsae.training.trainer as trainer_module
-    from medsae.training import Trainer
+    import doctosae.training.trainer as trainer_module
+    from doctosae.training import Trainer
 
     data, train_rows = _write_replay_data(tmp_path)
     k, hidden, batch, epochs, every, seed = 6, 48, 32, 2, 5, 41
@@ -474,7 +480,7 @@ def test_trainer_fit_replays_the_paper_training_loop(lam, k_aux, tmp_path, monke
     monkeypatch.setattr(trainer_module, "ShuffledBatches", ReplayBatches)
     monkeypatch.setattr(trainer_module, "PairBatchSampler", ReplayPairs)
     torch.manual_seed(seed)
-    sae = MedSAE(d_in=data.dim, n_latents=hidden, k=k)
+    sae = DoctoSAE(d_in=data.dim, n_latents=hidden, k=k)
     config = TrainingConfig(
         lr=5e-4, batch_size=batch, epochs=epochs, lambda_nce=lam, temperature=0.05, alpha_q=0.1,
         eval_every=every, seed=seed, device="cpu", show_progress=False, eval_batch_size=256, k_aux=k_aux,

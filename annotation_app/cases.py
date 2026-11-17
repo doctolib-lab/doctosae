@@ -1,6 +1,6 @@
 """Case schema shared by the app and `scripts/build_cases.py`.
 
-A case pairs one SAE feature description with one passage. This module imports neither streamlit nor medsae,
+A case pairs one SAE feature description with one passage. This module imports neither streamlit nor doctosae,
 so the build script and the tests only need the standard library.
 """
 

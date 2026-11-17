@@ -1,4 +1,4 @@
-"""Hyperparameters of :class:`medsae.training.Trainer`, with the values of the paper runs as defaults."""
+"""Hyperparameters of :class:`doctosae.training.Trainer`, with the values of the paper runs as defaults."""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ class TrainingConfig:
             training, used only when the dataset carries no corpus split of its own.
         seed: Seed of the loader shuffles, of the pair sampler and of the ``b_pre`` initialisation. The
             SAE weights are drawn when the model is built: call ``torch.manual_seed`` before
-            ``MedSAE(...)`` to fix them too.
+            ``DoctoSAE(...)`` to fix them too.
         compute_val_loss: Also compute the validation loss of the paper at every evaluation. It is monitoring
             only (the checkpoint is selected on NDCG@10) and costs one more pass over the corpus.
         eval_batch_size: Embeddings encoded at once during evaluation.

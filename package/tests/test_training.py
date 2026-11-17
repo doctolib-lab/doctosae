@@ -11,11 +11,11 @@ import pandas as pd
 import pytest
 import torch
 
-import medsae.training.trainer as trainer_module
-from medsae.data.dataset import EmbeddedDataset, RetrievalDataset
-from medsae.sae import MedSAE, geometric_median
-from medsae.training import Trainer, TrainingConfig
-from medsae.training.trainer import SELECTION_METRIC, build_optimizer, train_step
+import doctosae.training.trainer as trainer_module
+from doctosae.data.dataset import EmbeddedDataset, RetrievalDataset
+from doctosae.sae import DoctoSAE, geometric_median
+from doctosae.training import Trainer, TrainingConfig
+from doctosae.training.trainer import SELECTION_METRIC, build_optimizer, train_step
 
 HISTORY_KEYS = {
     "step", "epoch", "mse_c", "mse_q", "nce", "negatives", "aux", "l0", "dead_features", SELECTION_METRIC,
@@ -80,9 +80,9 @@ def _config(**overrides) -> TrainingConfig:
     return TrainingConfig(**(values | overrides))
 
 
-def _sae(seed: int = 0, **kwargs) -> MedSAE:
+def _sae(seed: int = 0, **kwargs) -> DoctoSAE:
     torch.manual_seed(seed)
-    return MedSAE(**({"d_in": 16, "n_latents": 48, "k": 4} | kwargs))
+    return DoctoSAE(**({"d_in": 16, "n_latents": 48, "k": 4} | kwargs))
 
 
 def test_config_defaults_are_the_paper_values():
@@ -146,7 +146,7 @@ def test_tiny_run_improves_validation_ndcg_and_writes_the_model(tmp_path):
     assert metadata[f"best_{SELECTION_METRIC}"] == pytest.approx(trainer.best_metric)
     assert sae.embedder == "toy/embedder"
 
-    reloaded = MedSAE.from_pretrained(output)
+    reloaded = DoctoSAE.from_pretrained(output)
     for name, tensor in sae.state_dict().items():
         assert torch.equal(reloaded.state_dict()[name], tensor.cpu())
     assert reloaded.metadata == json.loads(json.dumps(metadata))
@@ -187,14 +187,14 @@ def test_without_selection_the_last_weights_are_kept(monkeypatch):
 
 def test_missing_validation_queries_fall_back_to_training_queries(caplog):
     data = _toy_data(query_splits=("train", "test"))
-    with caplog.at_level(logging.WARNING, logger="medsae.training.trainer"):
+    with caplog.at_level(logging.WARNING, logger="doctosae.training.trainer"):
         trainer = Trainer(_sae(), _config()).fit(data)
     assert "selected on the 'train' queries" in caplog.text
     assert trainer.summary["selection_split"] == "train" and trainer.best_metric > 0
 
 
 def test_batch_sizes_are_clamped_on_tiny_datasets(caplog):
-    with caplog.at_level(logging.WARNING, logger="medsae.training.trainer"):
+    with caplog.at_level(logging.WARNING, logger="doctosae.training.trainer"):
         trainer = Trainer(_sae(), _config(batch_size=512, epochs=2)).fit(_toy_data())
     assert "smaller batches" in caplog.text
     assert trainer.summary["batch_sizes"] == {"documents": 288, "queries": 64, "pairs": 64}
@@ -229,13 +229,13 @@ def test_held_out_documents_never_enter_the_loss(monkeypatch):
 def test_b_pre_starts_at_the_geometric_median_of_training_documents_and_queries(monkeypatch):
     data = _toy_data()
     captured = {}
-    real_init = MedSAE.init_b_pre
+    real_init = DoctoSAE.init_b_pre
 
     def spy_init(self, x, **kwargs):
         captured.update(x=np.array(x), **kwargs)
         real_init(self, x, **kwargs)
 
-    monkeypatch.setattr(MedSAE, "init_b_pre", spy_init)
+    monkeypatch.setattr(DoctoSAE, "init_b_pre", spy_init)
     sae = _sae()
     Trainer(sae, _config(epochs=1, seed=7)).fit(data)
     train_rows = data.dataset.corpus_splits["train"]
@@ -259,7 +259,7 @@ def test_corpus_split_comes_from_split_corpus_when_the_dataset_has_none(monkeypa
         return {"train": np.arange(0, 320, 2), "val": np.arange(1, 320, 2)}
 
     monkeypatch.setitem(
-        sys.modules, "medsae.data.splits", types.SimpleNamespace(split_corpus=fake_split_corpus)
+        sys.modules, "doctosae.data.splits", types.SimpleNamespace(split_corpus=fake_split_corpus)
     )
     trainer = Trainer(_sae(), _config(corpus_val_fraction=0.2, epochs=1)).fit(data)
     assert calls == [{"val_frac": 0.2, "train_split": "train"}]
@@ -337,7 +337,7 @@ def test_a_stale_model_card_is_replaced(tmp_path):
 
 
 def test_a_dataset_without_license_is_flagged(caplog):
-    with caplog.at_level(logging.WARNING, logger="medsae.training.trainer"):
+    with caplog.at_level(logging.WARNING, logger="doctosae.training.trainer"):
         trainer = Trainer(_sae(), _config(epochs=1)).fit(_toy_data(license=None))
     assert "declares no license" in caplog.text and trainer.best_model.metadata["license"] is None
 
@@ -385,7 +385,7 @@ def test_a_run_that_stops_keeps_its_best_checkpoint_on_disk(tmp_path, monkeypatc
     with pytest.raises(MemoryError):
         trainer.fit(_toy_data())
     assert trainer.best_step == 4 and trainer.best_metric == 0.5 and trainer.best_model is trainer.sae
-    saved = MedSAE.from_pretrained(tmp_path)
+    saved = DoctoSAE.from_pretrained(tmp_path)
     for name, tensor in trainer.best_model.state_dict().items():
         assert torch.equal(saved.state_dict()[name], tensor)
     summary = json.loads((tmp_path / "summary.json").read_text())
@@ -417,7 +417,7 @@ def test_fine_tuning_keeps_the_provenance_and_the_strictest_terms(tmp_path, capl
                          "paper_config": {"k": 4}})  # fmt: skip
     with torch.no_grad():
         sae.b_pre.normal_()  # trained weights
-    with caplog.at_level(logging.WARNING, logger="medsae.training.trainer"):
+    with caplog.at_level(logging.WARNING, logger="doctosae.training.trainer"):
         Trainer(sae, _config(epochs=1), output_dir=tmp_path).fit(_toy_data())
     assert "Review the terms" in caplog.text
     metadata = json.loads((tmp_path / "config.json").read_text())["metadata"]

@@ -2,8 +2,8 @@
 
 Give exactly one input:
 
-* medsae package outputs: `--cards` and `--scores`, the `cards.json` and `scores.json` that
-  `medsae interpret --llm ... --score` writes (the scores must include the Interpreter LLM method, `llm`);
+* doctosae package outputs: `--cards` and `--scores`, the `cards.json` and `scores.json` that
+  `doctosae interpret --llm ... --score` writes (the scores must include the Interpreter LLM method, `llm`);
 * paper code outputs of `scripts/run_interpretability_pipeline.sh`: `--labels` (`labels.json`) and
   `--predictions` (`pred_binary_llm.json`), both in `RUN/interpretation/`;
 * a Markdown review file (`--from-markdown`), such as one written earlier with `--markdown`.
@@ -11,7 +11,7 @@ Give exactly one input:
 With the first two, features are ranked by the Pearson r between the judge's probability and the ground truth,
 the top features get one judged passage each (positive or negative at random), and a seeded draw balanced
 between positive and negative passages becomes the cases, so every annotator labels the same cases. Plain JSON
-in, plain JSON out: neither streamlit nor medsae is imported.
+in, plain JSON out: neither streamlit nor doctosae is imported.
 
     python scripts/build_cases.py --cards data/features/cards.json --scores data/features/scores.json
     python scripts/build_cases.py --labels labels.json --predictions pred_binary_llm.json --markdown data/top60.md
@@ -46,7 +46,7 @@ from cases import (
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUT = ROOT / "data" / "cases.json"
-# predict_neurons_binary.py and the medsae ScoreReport both store only the first 300 characters of a text
+# predict_neurons_binary.py and the doctosae ScoreReport both store only the first 300 characters of a text
 STORED_TEXT_CHARS = 300
 FAILED_LABELS = ("LABEL_ERROR", "PARSE_ERROR")  # topics the paper writes when the Interpreter LLM failed
 
@@ -128,7 +128,7 @@ def markdown_text(features: Sequence[dict], dataset: str | None, max_chars: int)
     return "\n\n---\n\n".join([header, *blocks]) + "\n"
 
 
-# ── medsae and paper outputs ─────────────────────────────────────────
+# ── doctosae and paper outputs ─────────────────────────────────────────
 
 
 def _read_json(path: Path) -> Any:
@@ -146,7 +146,7 @@ def _convert(records: list, convert: Callable[[dict], Any], path: Path) -> list:
 
 
 def _feature_id(record: dict) -> int:
-    """medsae names the feature id `feature`, the paper code `neuron`."""
+    """doctosae names the feature id `feature`, the paper code `neuron`."""
     return int(record["feature"] if "feature" in record else record["neuron"])
 
 
@@ -159,7 +159,7 @@ def _description(record: dict) -> tuple[int, dict]:
 
 
 def _pair(record: dict) -> dict:
-    # medsae records a failed request as an `error` record; like an unparsed reply, it carries no judgment
+    # doctosae records a failed request as an `error` record; like an unparsed reply, it carries no judgment
     parse_error = bool(record.get("parse_error")) or bool(record.get("error"))
     return {
         "feature": _feature_id(record),
@@ -184,12 +184,12 @@ def _stored_r(per_feature: Any) -> dict[int, Any]:
 def _read_scores(path: Path) -> tuple[list[dict], dict[int, Any], str | None]:
     """Judged pairs, stored per feature r and dataset name of a scores file, after the step 1 checks.
 
-    Two layouts: the `scores.json` of `medsae interpret --score` (`ScoreReport.to_dict()`, every scored
+    Two layouts: the `scores.json` of `doctosae interpret --score` (`ScoreReport.to_dict()`, every scored
     method under its name) and the `pred_binary_<type>.json` of the paper code (one description type each).
     """
     data = _read_json(path)
     predictions = data.get("predictions") if isinstance(data, dict) else None
-    if isinstance(predictions, dict):  # medsae ScoreReport
+    if isinstance(predictions, dict):  # doctosae ScoreReport
         if "llm" not in predictions:
             raise BuildError(f"{path} has no scores of Interpreter LLM descriptions (methods: "
                              f"{', '.join(map(str, predictions))}); score with the 'llm' method")
@@ -202,7 +202,7 @@ def _read_scores(path: Path) -> tuple[list[dict], dict[int, Any], str | None]:
                              "Interpreter LLM descriptions, so use pred_binary_llm.json")
         records, stored = predictions, data.get("metrics")
     else:
-        raise BuildError(f"{path} has no 'predictions'; expected the scores.json of medsae interpret or the "
+        raise BuildError(f"{path} has no 'predictions'; expected the scores.json of doctosae interpret or the "
                          "pred_binary_llm.json of the paper code")
     if data.get("shuffle_descriptions"):
         raise BuildError(f"{path} is the shuffled control, where each feature was judged with another "
@@ -212,8 +212,8 @@ def _read_scores(path: Path) -> tuple[list[dict], dict[int, Any], str | None]:
     return _convert(records, _pair, path), _stored_r(stored), data.get("dataset")
 
 
-def load_medsae(cards_path: Path, scores_path: Path) -> Inputs:
-    """`cards.json` and `scores.json` written by `medsae interpret` (a plain list of cards works too)."""
+def load_doctosae(cards_path: Path, scores_path: Path) -> Inputs:
+    """`cards.json` and `scores.json` written by `doctosae interpret` (a plain list of cards works too)."""
     cards = _read_json(cards_path)
     if isinstance(cards, dict):
         cards = cards.get("cards")
@@ -352,10 +352,10 @@ def _positive(text: str) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    medsae = parser.add_argument_group("medsae package outputs")
-    medsae.add_argument("--cards", type=Path,
+    doctosae = parser.add_argument_group("doctosae package outputs")
+    doctosae.add_argument("--cards", type=Path,
                         help="JSON list of FeatureCard.to_dict(), or an object with a 'cards' list")
-    medsae.add_argument("--scores", type=Path,
+    doctosae.add_argument("--scores", type=Path,
                         help="Activation Prediction report for the 'llm' descriptions, with per pair records")
     paper = parser.add_argument_group("paper code outputs")
     paper.add_argument("--labels", type=Path, help="labels.json written by label_neurons.py")
@@ -366,7 +366,7 @@ def build_parser() -> argparse.ArgumentParser:
                         help="review file in the --markdown format; rank and ground truth are read from it, "
                         "so the same file and seed give the same cases")
     parser.add_argument("--top", type=_positive, default=60,
-                        help="features kept by r before the draw, medsae and paper inputs only (default 60)")
+                        help="features kept by r before the draw, doctosae and paper inputs only (default 60)")
     parser.add_argument("--n-cases", type=_positive, default=30,
                         help="cases to draw, half of them positive (default 30)")
     parser.add_argument("--seed", type=int, default=SAMPLE_SEED,
@@ -386,7 +386,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     modes = {
-        "medsae": (args.cards, args.scores),
+        "doctosae": (args.cards, args.scores),
         "paper": (args.labels, args.predictions),
         "markdown": (args.from_markdown,),
     }
@@ -402,7 +402,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 raise BuildError(f"no feature block found in {args.from_markdown}")
             dataset = args.dataset
         else:
-            inputs = (load_medsae(args.cards, args.scores) if given[0] == "medsae"
+            inputs = (load_doctosae(args.cards, args.scores) if given[0] == "doctosae"
                       else load_paper(args.labels, args.predictions))
             ranked = rank_features(inputs, args.top)
             if not ranked:
@@ -412,7 +412,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             dataset = args.dataset or inputs.dataset
             hint = ("lower --n-cases or raise --top" if len(ranked) == args.top else
                     f"only {len(ranked)} features have a usable description and judged passages of both labels "
-                    f"(fewer than --top {args.top}): describe more features with medsae interpret (leave out "
+                    f"(fewer than --top {args.top}): describe more features with doctosae interpret (leave out "
                     "--n-features, or give 60 or more), or lower --n-cases")
         try:
             cases = sample_cases(features, args.n_cases, args.seed)

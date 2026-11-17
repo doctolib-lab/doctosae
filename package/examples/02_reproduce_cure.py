@@ -1,8 +1,8 @@
 """Train the SAE setting of Tables 2 and 3 of the paper on CURE (BGE embeddings, k = 64, m = 3072) and
 evaluate it as in Table 1.
 
-For every seed, a MedSAE is trained on the 1,400 CURE training queries and 223,425 training passages with the
-defaults of ``TrainingConfig`` (see below for the InfoNCE weight and temperature), the checkpoint with the
+For every seed, a DoctoSAE is trained on the 1,400 CURE training queries and 223,425 training passages with
+the defaults of ``TrainingConfig`` (see below for the InfoNCE weight and temperature), the checkpoint with the
 best validation NDCG@10 is kept, and its NDCG@10 is computed for the 400 test queries over all 244,600
 passages. The same checkpoints can be scored out of domain. With several seeds the results are reported as in
 the paper: mean and 95% confidence interval with the t quantile (n minus 1 degrees of freedom).
@@ -31,7 +31,7 @@ import numpy as np
 import torch
 from scipy import stats
 
-from medsae import EmbeddedDataset, Embedder, MedSAE, Trainer, TrainingConfig, evaluate, load_dataset
+from doctosae import DoctoSAE, EmbeddedDataset, Embedder, Trainer, TrainingConfig, evaluate, load_dataset
 
 ENCODER = "BAAI/bge-large-en-v1.5"
 K, EXPANSION = 64, 3
@@ -44,12 +44,12 @@ PAPER_NDCG = {
     "r2med_medical_sciences": 22.72,
 }
 
-logger = logging.getLogger("medsae.examples.reproduce_cure")  # shown with the INFO logs of medsae
+logger = logging.getLogger("doctosae.examples.reproduce_cure")  # shown with the INFO logs of doctosae
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Train MedSAE on CURE with BGE embeddings, k = 64, m = 3072."
+        description="Train DoctoSAE on CURE with BGE embeddings, k = 64, m = 3072."
     )
     parser.add_argument("--output", type=Path, default=Path("runs/cure"), help="output folder")
     parser.add_argument("--seeds", type=int, nargs="+", default=[42], help="training seeds (paper: 41 42 43)")
@@ -100,7 +100,7 @@ def mean_and_ci(values: list[float]) -> tuple[float, float]:
 def main() -> None:
     args = parse_args()
     logging.basicConfig(format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    logging.getLogger("medsae").setLevel(logging.INFO)  # progress of medsae, warnings only from libraries
+    logging.getLogger("doctosae").setLevel(logging.INFO)  # progress of doctosae, warnings only from libraries
 
     cure = embedded("cure", args.output / "embeddings" / "cure", args.device)
     ood = {
@@ -111,7 +111,7 @@ def main() -> None:
     results: dict[str, list[float]] = {name: [] for name in ["cure", *args.ood]}
     for seed in args.seeds:
         torch.manual_seed(seed)  # initial weights, as the paper code seeds torch before building the SAE
-        sae = MedSAE(
+        sae = DoctoSAE(
             d_in=cure.dim,
             n_latents=EXPANSION * cure.dim,
             k=K,
@@ -132,7 +132,7 @@ def main() -> None:
             results[name].append(ndcg)
             logger.info("seed %d, %s: NDCG@10 = %.2f", seed, name, ndcg)
 
-    print(f"\n{'NDCG@10 (%)':<26}{'MedSAE':>16}{'paper':>9}")
+    print(f"\n{'NDCG@10 (%)':<26}{'DoctoSAE':>16}{'paper':>9}")
     summary = {}
     for name, values in results.items():
         mean, half_width = mean_and_ci(values)

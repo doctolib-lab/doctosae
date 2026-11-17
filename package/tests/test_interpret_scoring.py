@@ -10,10 +10,10 @@ import numpy as np
 import pytest
 import scipy.sparse as sp
 
-from medsae.interpret.cards import FeatureCard
-from medsae.interpret.llm import FakeLLM
-from medsae.interpret.prompts import OOD_NOTE, SCORE_INSTRUCTION
-from medsae.interpret.scoring import (
+from doctosae.interpret.cards import FeatureCard
+from doctosae.interpret.llm import FakeLLM
+from doctosae.interpret.prompts import OOD_NOTE, SCORE_INSTRUCTION
+from doctosae.interpret.scoring import (
     EvalPool,
     PoolSource,
     build_eval_rows,
