@@ -15,7 +15,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from medsae.interpret.cards import FeatureCard
+    from doctosae.interpret.cards import FeatureCard
 
 __all__ = [
     "ACTIVATION_GUIDELINE",

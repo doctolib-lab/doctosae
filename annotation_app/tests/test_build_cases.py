@@ -220,19 +220,19 @@ def test_cli_paper_mode_end_to_end(tmp_path, capsys):
         assert [c[key] for c in reread] == [c[key] for c in cases]
 
 
-# ── medsae package outputs ───────────────────────────────────────────
+# ── doctosae package outputs ───────────────────────────────────────────
 
 
 def judged(feature: int, row: int, positive: bool, score: float, parse_error: bool = False) -> dict:
-    """One prediction record as medsae.interpret.scoring writes it."""
+    """One prediction record as doctosae.interpret.scoring writes it."""
     return {"feature": feature, "row": row, "source": "corpus", "text": f"Synthetic text {row} of {feature}.",
             "ground_truth": positive, "activation": 0.2 if positive else None,
             "rank": 4 if positive else None, "parse_error": parse_error,
             "score": 0.5 if parse_error else score, "fires": score > 0.5}
 
 
-def medsae_outputs(tmp_path: Path, methods: tuple[str, ...] = ("tfidf", "llm")) -> tuple[Path, Path]:
-    """cards.json and scores.json in the layout `medsae interpret --score` writes them."""
+def doctosae_outputs(tmp_path: Path, methods: tuple[str, ...] = ("tfidf", "llm")) -> tuple[Path, Path]:
+    """cards.json and scores.json in the layout `doctosae interpret --score` writes them."""
     cards = [{"feature": 9, "n_documents": 6, "n_queries": 5, "firing_rate": 0.01, "top_documents": [],
               "top_queries": [], "negatives": [], "tfidf_terms": ["term"], "topic": None, "description": None,
               "keywords": []}]  # never labelled
@@ -252,13 +252,13 @@ def medsae_outputs(tmp_path: Path, methods: tuple[str, ...] = ("tfidf", "llm")) 
               "summary": {}, "rank_bands": {},
               "per_feature": {m: per_feature[m] for m in methods},
               "predictions": {m: {"llm": llm, "tfidf": tfidf}[m] for m in methods}}
-    payload = {"format": "medsae.feature_cards", "version": 1, "metadata": {}, "cards": cards}
+    payload = {"format": "doctosae.feature_cards", "version": 1, "metadata": {}, "cards": cards}
     return write_json(tmp_path / "cards.json", payload), write_json(tmp_path / "scores.json", report)
 
 
-def test_medsae_outputs(tmp_path):
-    cards, scores = medsae_outputs(tmp_path)
-    inputs = build_cases.load_medsae(cards, scores)
+def test_doctosae_outputs(tmp_path):
+    cards, scores = doctosae_outputs(tmp_path)
+    inputs = build_cases.load_doctosae(cards, scores)
     assert inputs.dataset == "synthetic"
     assert len(inputs.pairs) == 3 + 8 * 4  # only the llm predictions
     ranked = build_cases.rank_features(inputs, top=60)
@@ -273,21 +273,21 @@ def test_medsae_outputs(tmp_path):
                                                          "description, synthetic)")
 
 
-def test_failed_requests_of_medsae_are_dropped_like_parse_errors(tmp_path):
-    cards, scores = medsae_outputs(tmp_path)
+def test_failed_requests_of_doctosae_are_dropped_like_parse_errors(tmp_path):
+    cards, scores = doctosae_outputs(tmp_path)
     report = json.loads(scores.read_text(encoding="utf-8"))
     failed = dict(judged(3, 9, True, 0.5), error="TimeoutError: read timeout")  # score 0.5, parse_error False
     report["predictions"]["llm"].append(failed)
     scores.write_text(json.dumps(report), encoding="utf-8")
-    inputs = build_cases.load_medsae(cards, scores)
+    inputs = build_cases.load_doctosae(cards, scores)
     assert inputs.pairs[-1]["parse_error"] and math.isnan(inputs.pairs[-1]["probability"])
     ranked = build_cases.rank_features(inputs, top=60)
     assert all(p["row"] != 9 for f in ranked for p in f["pairs"])
 
 
-def test_medsae_scores_without_the_llm_method_are_refused(tmp_path):
+def test_doctosae_scores_without_the_llm_method_are_refused(tmp_path):
     with pytest.raises(build_cases.BuildError, match="no scores of Interpreter LLM descriptions"):
-        build_cases.load_medsae(*medsae_outputs(tmp_path, methods=("tfidf",)))
+        build_cases.load_doctosae(*doctosae_outputs(tmp_path, methods=("tfidf",)))
 
 
 # ── The draw and the command line ────────────────────────────────────
@@ -313,12 +313,12 @@ def test_too_few_positives_is_a_clear_error():
 
 
 def test_too_few_described_features_ask_for_more_features(tmp_path, capsys):
-    cards, scores = medsae_outputs(tmp_path)  # 8 usable features, below the default --top 60
+    cards, scores = doctosae_outputs(tmp_path)  # 8 usable features, below the default --top 60
     with pytest.raises(SystemExit) as exit_info:
         build_cases.main(["--cards", str(cards), "--scores", str(scores), "--out", str(tmp_path / "c.json")])
     assert exit_info.value.code == 1
     err = capsys.readouterr().err
-    assert "only 8 features" in err and "medsae interpret" in err and "raise --top" not in err
+    assert "only 8 features" in err and "doctosae interpret" in err and "raise --top" not in err
 
 
 @pytest.mark.parametrize("argv", [

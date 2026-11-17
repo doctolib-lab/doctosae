@@ -13,7 +13,7 @@ from typing import Any
 import numpy as np
 import scipy.sparse as sp
 
-from medsae.interpret.activations import ActivationIndex
+from doctosae.interpret.activations import ActivationIndex
 
 __all__ = ["select_features", "theme_entropy"]
 

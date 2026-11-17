@@ -7,9 +7,9 @@ import math
 
 import pytest
 
-from medsae.interpret.cards import PARSE_ERROR
-from medsae.interpret.labeling import Label, label_from_json, parse_label
-from medsae.interpret.scoring import parse_score
+from doctosae.interpret.cards import PARSE_ERROR
+from doctosae.interpret.labeling import Label, label_from_json, parse_label
+from doctosae.interpret.scoring import parse_score
 
 
 def test_label_after_reasoning_text_and_code_fence():

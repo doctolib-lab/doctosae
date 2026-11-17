@@ -1,16 +1,16 @@
-"""The ``medsae`` command line.
+"""The ``doctosae`` command line.
 
 Each command is a thin layer over the Python API and its help names the function it calls, so anything done
 here can be scripted in Python the same way. Heavy libraries (PyTorch, pandas, sentence transformers) are
-imported inside the commands, which keeps ``medsae --help`` fast.
+imported inside the commands, which keeps ``doctosae --help`` fast.
 
 A typical session embeds a dataset once, then trains, evaluates and interprets on the saved embeddings::
 
-    medsae embed --dataset nfcorpus --model BAAI/bge-small-en-v1.5 --output runs/nfcorpus/embeddings
-    medsae train --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --k 32 \\
+    doctosae embed --dataset nfcorpus --model BAAI/bge-small-en-v1.5 --output runs/nfcorpus/embeddings
+    doctosae train --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --k 32 \\
         --output-dir runs/nfcorpus/sae
-    medsae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae
-    medsae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \\
+    doctosae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae
+    doctosae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \\
         --output runs/nfcorpus/features
 """
 
@@ -27,24 +27,24 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from medsae import __version__
+from doctosae import __version__
 
 if TYPE_CHECKING:
-    from medsae.data import EmbeddedDataset, RetrievalDataset
-    from medsae.embed import Embedder, GeminiEmbedder
-    from medsae.interpret import LLM
-    from medsae.sae import MedSAE
+    from doctosae.data import EmbeddedDataset, RetrievalDataset
+    from doctosae.embed import Embedder, GeminiEmbedder
+    from doctosae.interpret import LLM
+    from doctosae.sae import DoctoSAE
 
 __all__ = ["PAPER_TRAINING_VALUES", "build_parser", "main"]
 
 logger = logging.getLogger(__name__)
 
-PROG = "medsae"
+PROG = "doctosae"
 
-# Hyperparameters the paper holds fixed (Appendix A), quoted in the help of `medsae train`. The InfoNCE weight
-# and temperature are not among them: the paper selects them per k on validation NDCG@10 from a grid, of which
-# the TrainingConfig defaults are one point. The defaults themselves live in medsae.TrainingConfig, and the
-# test suite checks that both agree.
+# Hyperparameters the paper holds fixed (Appendix A), quoted in the help of `doctosae train`. The InfoNCE
+# weight and temperature are not among them: the paper selects them per k on validation NDCG@10 from a grid,
+# of which the TrainingConfig defaults are one point. The defaults themselves live in doctosae.TrainingConfig,
+# and the test suite checks that both agree.
 PAPER_TRAINING_VALUES: dict[str, float | int] = {
     "lr": 5e-4,
     "batch_size": 512,
@@ -94,50 +94,50 @@ def _print_metrics(title: str, metrics: dict[str, Any]) -> None:
 
 
 def _load_dataset(name: str, cache_dir: Path | None) -> RetrievalDataset:
-    """``medsae.load_dataset``: a registry name or a folder in the BEIR layout."""
-    from medsae.data import load_dataset
+    """``doctosae.load_dataset``: a registry name or a folder in the BEIR layout."""
+    from doctosae.data import load_dataset
 
     return load_dataset(name, **_given(cache_dir=cache_dir))
 
 
 def _load_embeddings(folder: Path, dataset_name: str, cache_dir: Path | None) -> EmbeddedDataset:
-    """``medsae.EmbeddedDataset.load``: embeddings saved by ``medsae embed`` for that very dataset."""
-    from medsae.data import EmbeddedDataset
+    """``doctosae.EmbeddedDataset.load``: embeddings saved by ``doctosae embed`` for that very dataset."""
+    from doctosae.data import EmbeddedDataset
 
     return EmbeddedDataset.load(folder, _load_dataset(dataset_name, cache_dir))
 
 
-def _load_sae(spec: str) -> MedSAE:
-    """A folder written by ``save_pretrained`` (``MedSAE.from_pretrained``), else a Hub checkpoint id
-    (``medsae.load_pretrained``)."""
+def _load_sae(spec: str) -> DoctoSAE:
+    """A folder written by ``save_pretrained`` (``DoctoSAE.from_pretrained``), else a Hub checkpoint id
+    (``doctosae.load_pretrained``)."""
     path = Path(spec).expanduser()
     if path.exists():
-        from medsae.sae import MedSAE
+        from doctosae.sae import DoctoSAE
 
-        return MedSAE.from_pretrained(path)
+        return DoctoSAE.from_pretrained(path)
     if spec.count("/") not in (1, 2) or spec.startswith((".", "/", "~")):
         raise FileNotFoundError(
-            f"no MedSAE folder at {spec} (a Hub checkpoint id reads organisation/name or "
+            f"no DoctoSAE folder at {spec} (a Hub checkpoint id reads organisation/name or "
             "organisation/name/kK_mM)"
         )
-    from medsae.hub import load_pretrained
+    from doctosae.hub import load_pretrained
 
     return load_pretrained(repo_id=spec)
 
 
 def _embedder(
     model: str | None = None,
-    sae: MedSAE | None = None,
+    sae: DoctoSAE | None = None,
     *,
     device: str | None = None,
     no_normalize: bool = False,
     max_seq_length: int | None = None,
     **options: Any,
 ) -> Embedder | GeminiEmbedder:
-    """``medsae.Embedder``, or ``medsae.embed.GeminiEmbedder`` for ``gemini-embedding-001``; with an SAE, the
-    encoder recorded in it (``Embedder.from_sae``). Options set to ``None`` keep the API defaults."""
-    from medsae.embed import Embedder, GeminiEmbedder
-    from medsae.hub import resolve_embedder
+    """``doctosae.Embedder``, or ``doctosae.embed.GeminiEmbedder`` for ``gemini-embedding-001``; with an SAE,
+    the encoder recorded in it (``Embedder.from_sae``). Options set to ``None`` keep the API defaults."""
+    from doctosae.embed import Embedder, GeminiEmbedder
+    from doctosae.hub import resolve_embedder
 
     target = sae.embedder if sae is not None else model
     gemini = bool(target) and resolve_embedder(target).lower().startswith("gemini")
@@ -160,9 +160,9 @@ def _add_datasets(commands: Subparsers, parent: argparse.ArgumentParser) -> None
         parent,
         "datasets",
         "list the benchmarks of the paper, or load one",
-        "Without NAME, list the registered benchmarks with their size and license (medsae.list_datasets). "
-        "With NAME, download it, print its terms of use and describe its splits (medsae.load_dataset).",
-        "medsae datasets\nmedsae datasets nfcorpus",
+        "Without NAME, list the registered benchmarks with their size and license (doctosae.list_datasets). "
+        "With NAME, download it, print its terms of use and describe its splits (doctosae.load_dataset).",
+        "doctosae datasets\ndoctosae datasets nfcorpus",
     )
     sub.add_argument(
         "name", nargs="?", metavar="NAME", help="benchmark name or BEIR folder to load and describe"
@@ -174,7 +174,7 @@ def _add_datasets(commands: Subparsers, parent: argparse.ArgumentParser) -> None
 
 
 def _run_datasets(args: argparse.Namespace) -> int:
-    from medsae.data import get_dataset_info, list_datasets
+    from doctosae.data import get_dataset_info, list_datasets
 
     if args.name is not None:
         print(_load_dataset(args.name, args.cache_dir).describe())
@@ -189,7 +189,7 @@ def _run_datasets(args: argparse.Namespace) -> int:
         cells = [row[0].ljust(widths[0]), row[1].rjust(widths[1])]
         cells += [cell.ljust(width) for cell, width in zip(row[2:], widths[2:], strict=True)]
         print("  ".join(cells).rstrip())
-    print("\nDatasets are downloaded on first use; `medsae datasets NAME` prints the terms of one.")
+    print("\nDatasets are downloaded on first use; `doctosae datasets NAME` prints the terms of one.")
     return 0
 
 
@@ -202,12 +202,12 @@ def _add_pretrained(commands: Subparsers, parent: argparse.ArgumentParser) -> No
         parent,
         "pretrained",
         "list, name or download pretrained checkpoints",
-        "Without options, list the MedSAE checkpoints published on the Hugging Face Hub "
-        "(medsae.list_pretrained). With --embedder and --k, print the id of that checkpoint "
-        "(medsae.pretrained_checkpoint_id); add --download to save it into a new folder "
-        "(medsae.load_pretrained).",
-        "medsae pretrained\nmedsae pretrained --embedder bge --k 64\n"
-        "medsae pretrained --embedder bge --k 64 --download checkpoints/bge_k64",
+        "Without options, list the DoctoSAE checkpoints published on the Hugging Face Hub "
+        "(doctosae.list_pretrained). With --embedder and --k, print the id of that checkpoint "
+        "(doctosae.pretrained_checkpoint_id); add --download to save it into a new folder "
+        "(doctosae.load_pretrained).",
+        "doctosae pretrained\ndoctosae pretrained --embedder bge --k 64\n"
+        "doctosae pretrained --embedder bge --k 64 --download checkpoints/bge_k64",
     )
     sub.add_argument("--author", help="Hub user or organisation to list (default: doctolib-lab)")
     sub.add_argument("--embedder", help="bge, medembed, gemini or a full model id (default: bge)")
@@ -226,12 +226,12 @@ def _add_pretrained(commands: Subparsers, parent: argparse.ArgumentParser) -> No
 
 
 def _run_pretrained(args: argparse.Namespace) -> int:
-    from medsae.hub import HUB_ORG, list_pretrained, load_pretrained, pretrained_checkpoint_id
+    from doctosae.hub import HUB_ORG, list_pretrained, load_pretrained, pretrained_checkpoint_id
 
     if args.embedder is None and args.k is None and args.repo_id is None and args.download is None:
         published = list_pretrained(**_given(author=args.author))
         print(
-            "\n".join(published) or f"No MedSAE checkpoint is published under {args.author or HUB_ORG} yet."
+            "\n".join(published) or f"No DoctoSAE checkpoint is published under {args.author or HUB_ORG} yet."
         )
         return 0
     checkpoint_id = pretrained_checkpoint_id(
@@ -256,14 +256,15 @@ def _add_embed(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
         parent,
         "embed",
         "embed a dataset with a frozen text encoder",
-        "Embed the corpus and the queries of every split (medsae.Embedder.embed_dataset) and save the arrays "
-        "with the encoder settings (medsae.EmbeddedDataset.save). Queries of the BGE v1.5 models get the "
-        "retrieval instruction of their model card, the one the paper used for BGE large, and other models "
-        "none, unless --query-instruction says otherwise. gemini-embedding-001 goes through "
-        "medsae.embed.GeminiEmbedder, with the Google Cloud credentials of the environment (pip install "
-        '"medsae[gemini]").',
-        "medsae embed --dataset nfcorpus --model BAAI/bge-small-en-v1.5 --output runs/nfcorpus/embeddings\n"
-        "medsae embed --dataset r2med_biology --sae runs/nfcorpus/sae --output runs/r2med_biology/embeddings",
+        "Embed the corpus and the queries of every split (doctosae.Embedder.embed_dataset) and save the "
+        "arrays with the encoder settings (doctosae.EmbeddedDataset.save). Queries of the BGE v1.5 models "
+        "get the retrieval instruction of their model card, the one the paper used for BGE large, and other "
+        "models none, unless --query-instruction says otherwise. gemini-embedding-001 goes through "
+        "doctosae.embed.GeminiEmbedder, with the Google Cloud credentials of the environment (pip install "
+        '"doctosae[gemini]").',
+        "doctosae embed --dataset nfcorpus --model BAAI/bge-small-en-v1.5 --output runs/nfcorpus/embeddings\n"
+        "doctosae embed --dataset r2med_biology --sae runs/nfcorpus/sae \\\n"
+        "    --output runs/r2med_biology/embeddings",
     )
     _add_dataset_arguments(sub)
     sub.add_argument(
@@ -272,7 +273,7 @@ def _add_embed(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
     encoder = sub.add_mutually_exclusive_group()
     encoder.add_argument("--model", help="model id or alias: bge, medembed, gemini (default: BGE large)")
     encoder.add_argument(
-        "--sae", metavar="PATH_OR_REPO", help="use the encoder recorded in this MedSAE (Embedder.from_sae)"
+        "--sae", metavar="PATH_OR_REPO", help="use the encoder recorded in this DoctoSAE (Embedder.from_sae)"
     )
     sub.add_argument("--query-instruction", help="text put before every query (an empty string disables it)")
     sub.add_argument("--document-instruction", help="text put before every document")
@@ -315,13 +316,13 @@ def _add_train(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
         commands,
         parent,
         "train",
-        "train a MedSAE on embedded data",
+        "train a DoctoSAE on embedded data",
         "Train a TopK sparse autoencoder with the reconstruction and InfoNCE objective of the paper "
-        "(medsae.Trainer.fit). Training options default to the values the paper holds fixed, and to one "
-        "point of its grid for the InfoNCE weight and temperature (medsae.TrainingConfig). The checkpoint "
+        "(doctosae.Trainer.fit). Training options default to the values the paper holds fixed, and to one "
+        "point of its grid for the InfoNCE weight and temperature (doctosae.TrainingConfig). The checkpoint "
         "with the best validation NDCG@10 is saved in --output-dir at every improvement, then scored on the "
         "test split if there is one.",
-        "medsae train --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --k 32 \\\n"
+        "doctosae train --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --k 32 \\\n"
         "    --output-dir runs/nfcorpus/sae",
     )
     _add_dataset_arguments(sub)
@@ -329,7 +330,7 @@ def _add_train(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
     sub.add_argument(
         "--output-dir", metavar="DIR", type=Path, required=True, help="where to save the best SAE"
     )
-    model = sub.add_argument_group("model (medsae.MedSAE)")
+    model = sub.add_argument_group("model (doctosae.DoctoSAE)")
     model.add_argument(
         "--k", type=int, metavar="K", default=64, help="active features per embedding (default: %(default)s)"
     )
@@ -348,7 +349,7 @@ def _add_train(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
         default="relu",
         help="applied after the TopK (default: relu)",
     )
-    training = sub.add_argument_group("training (medsae.TrainingConfig)")
+    training = sub.add_argument_group("training (doctosae.TrainingConfig)")
     training.add_argument(
         "--lr", type=float, metavar="LR", help=f"Adam learning rate (paper: {paper['lr']:.4f})"
     )
@@ -424,9 +425,9 @@ def _add_train(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
 def _run_train(args: argparse.Namespace) -> int:
     import torch
 
-    from medsae.metrics import evaluate
-    from medsae.sae import MedSAE
-    from medsae.training import Trainer, TrainingConfig
+    from doctosae.metrics import evaluate
+    from doctosae.sae import DoctoSAE
+    from doctosae.training import Trainer, TrainingConfig
 
     config = TrainingConfig(
         **_given(
@@ -450,7 +451,7 @@ def _run_train(args: argparse.Namespace) -> int:
     )
     data = _load_embeddings(args.embeddings, args.dataset, args.cache_dir)
     torch.manual_seed(config.seed)  # initial weights: the paper code seeds torch before building the SAE
-    sae = MedSAE(
+    sae = DoctoSAE(
         d_in=data.dim,
         n_latents=args.n_latents or args.expansion * data.dim,
         k=args.k,
@@ -468,7 +469,7 @@ def _run_train(args: argparse.Namespace) -> int:
     print(f"Saved the SAE ({trainer.best_model.extra_repr()}; {selected}) to {args.output_dir}")
     if "test" in data.queries and args.train_split != "test":
         metrics = evaluate(trainer.best_model, data, split="test", device=args.device)
-        _print_metrics(f"{data.dataset.name} test, MedSAE sparse codes", metrics)
+        _print_metrics(f"{data.dataset.name} test, DoctoSAE sparse codes", metrics)
     return 0
 
 
@@ -480,12 +481,12 @@ def _add_evaluate(commands: Subparsers, parent: argparse.ArgumentParser) -> None
         commands,
         parent,
         "evaluate",
-        "retrieval metrics of a MedSAE or of the dense embeddings",
+        "retrieval metrics of a DoctoSAE or of the dense embeddings",
         "Rank the whole corpus for every query of a split by cosine similarity of the sparse codes, or of "
         "the dense embeddings without --sae, and report NDCG@10 as in the paper, recall and MRR "
-        "(medsae.evaluate).",
-        "medsae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings\n"
-        "medsae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae",
+        "(doctosae.evaluate).",
+        "doctosae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings\n"
+        "doctosae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae",
     )
     _add_dataset_arguments(sub)
     _add_embeddings_argument(sub)
@@ -502,17 +503,17 @@ def _add_evaluate(commands: Subparsers, parent: argparse.ArgumentParser) -> None
 
 
 def _run_evaluate(args: argparse.Namespace) -> int:
-    from medsae.metrics import evaluate
+    from doctosae.metrics import evaluate
 
     data = _load_embeddings(args.embeddings, args.dataset, args.cache_dir)
     sae = _load_sae(args.sae) if args.sae else None
     if sae is not None and sae.d_in != data.dim:
         raise ValueError(
             f"the SAE reads {sae.d_in} dimensional embeddings but {data.embedder} gives {data.dim}: embed "
-            "the dataset with the encoder of the SAE (medsae embed --sae ...)"
+            "the dataset with the encoder of the SAE (doctosae embed --sae ...)"
         )
     metrics = evaluate(sae, data, split=args.split, k=args.cutoff, device=args.device)
-    codes = "MedSAE sparse codes" if sae is not None else f"dense {data.embedder} embeddings"
+    codes = "DoctoSAE sparse codes" if sae is not None else f"dense {data.embedder} embeddings"
     _print_metrics(f"{data.dataset.name} {args.split}, {codes}", metrics)
     if args.output is not None:
         _write_json(
@@ -530,14 +531,14 @@ def _add_interpret(commands: Subparsers, parent: argparse.ArgumentParser) -> Non
         parent,
         "interpret",
         "describe the features: top texts, TF IDF terms and LLM labels",
-        "Select the features that fire on enough documents and queries (medsae.Interpreter.select_features) "
-        "and write their cards (medsae.Interpreter.describe): top documents and queries, negatives, TF IDF "
-        "terms and, with --llm, the topic, description and keywords of an Interpreter LLM. With --score, an "
-        "Activation Prediction LLM checks the cards on held out texts (medsae.Interpreter.score), in domain "
-        "or on the corpus of --score-on.",
-        "medsae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings \\\n"
+        "Select the features that fire on enough documents and queries "
+        "(doctosae.Interpreter.select_features) and write their cards (doctosae.Interpreter.describe): top "
+        "documents and queries, negatives, TF IDF terms and, with --llm, the topic, description and keywords "
+        "of an Interpreter LLM. With --score, an Activation Prediction LLM checks the cards on held out "
+        "texts (doctosae.Interpreter.score), in domain or on the corpus of --score-on.",
+        "doctosae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings \\\n"
         "    --sae runs/nfcorpus/sae --output runs/nfcorpus/features --n-features 20\n"
-        "medsae interpret ... --llm openai --llm-model MODEL --base-url http://localhost:8000/v1 --score",
+        "doctosae interpret ... --llm openai --llm-model MODEL --base-url http://localhost:8000/v1 --score",
     )
     _add_dataset_arguments(sub)
     _add_embeddings_argument(sub)
@@ -555,7 +556,7 @@ def _add_interpret(commands: Subparsers, parent: argparse.ArgumentParser) -> Non
         metavar="SPLIT",
         help="query split used as evidence (default: %(default)s)",
     )
-    selection = sub.add_argument_group("feature selection (medsae.Interpreter.select_features)")
+    selection = sub.add_argument_group("feature selection (doctosae.Interpreter.select_features)")
     chosen = selection.add_mutually_exclusive_group()
     chosen.add_argument("--features", type=int, nargs="+", metavar="ID", help="describe these features")
     chosen.add_argument(
@@ -573,14 +574,14 @@ def _add_interpret(commands: Subparsers, parent: argparse.ArgumentParser) -> Non
         help="corpus column of themes; order features by theme entropy, most theme specific first "
         "(source_folder for CURE, as in Table 3 of the paper: the order drives the seeded draws of --score)",
     )
-    cards = sub.add_argument_group("feature cards (medsae.Interpreter.describe)")
+    cards = sub.add_argument_group("feature cards (doctosae.Interpreter.describe)")
     cards.add_argument("--n-documents", type=int, metavar="N", help="top documents per card (paper: 5)")
     cards.add_argument("--n-queries", type=int, metavar="N", help="top queries per card (paper: 5)")
     cards.add_argument(
         "--n-negatives", type=int, metavar="N", help="documents the feature does not fire on (paper: 2)"
     )
     cards.add_argument("--n-terms", type=int, metavar="N", help="TF IDF terms per card (paper: 5)")
-    scoring = sub.add_argument_group("Activation Prediction (medsae.Interpreter.score)")
+    scoring = sub.add_argument_group("Activation Prediction (doctosae.Interpreter.score)")
     scoring.add_argument("--score", action="store_true", help="score the cards (needs --llm)")
     scoring.add_argument(
         "--score-on",
@@ -591,7 +592,7 @@ def _add_interpret(commands: Subparsers, parent: argparse.ArgumentParser) -> Non
         "--score-on-embeddings",
         metavar="DIR",
         type=Path,
-        help="embeddings of --score-on saved by `medsae embed --sae ...` (default: embed its corpus now)",
+        help="embeddings of --score-on saved by `doctosae embed --sae ...` (default: embed its corpus now)",
     )
     scoring.add_argument(
         "--methods",
@@ -613,17 +614,17 @@ def _llm(args: argparse.Namespace) -> LLM | None:
     if args.llm == "none":
         return None
     if args.llm == "fake":
-        from medsae.interpret import FakeLLM
+        from doctosae.interpret import FakeLLM
 
         logger.warning(
             "FakeLLM writes placeholder labels and scores: use it to try the pipeline, not to report."
         )
         return FakeLLM()
     if args.llm == "transformers":
-        from medsae.interpret import TransformersLLM
+        from doctosae.interpret import TransformersLLM
 
         return TransformersLLM(**_given(model=args.llm_model, device=args.device))
-    from medsae.interpret import OpenAICompatibleLLM
+    from doctosae.interpret import OpenAICompatibleLLM
 
     if args.llm_model is None:
         raise ValueError("--llm openai needs --llm-model, the name of the model served at --base-url")
@@ -637,7 +638,7 @@ def _llm(args: argparse.Namespace) -> LLM | None:
 
 
 def _run_interpret(args: argparse.Namespace) -> int:
-    from medsae.interpret import Interpreter
+    from doctosae.interpret import Interpreter
 
     if args.score and args.llm == "none":
         raise ValueError("--score needs an Activation Prediction LLM: set --llm")
@@ -696,7 +697,7 @@ def _run_interpret(args: argparse.Namespace) -> int:
 
 def _same_dataset(name: str, dataset_name: str) -> bool:
     """True when a dataset argument names the dataset of the interpreter (registry aliases resolved)."""
-    from medsae.data import resolve_dataset_name
+    from doctosae.data import resolve_dataset_name
 
     key = resolve_dataset_name(name) or Path(name).expanduser().name
     return key == (resolve_dataset_name(dataset_name) or dataset_name)
@@ -713,10 +714,12 @@ def _add_explain(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
         "show which features make one passage outrank another",
         "Split the cosine similarity of the sparse codes of a query and two passages into one contribution "
         "per feature, and show the features whose contributions differ most, as in Figure 2 of the paper "
-        "(medsae.Interpreter.explain). Texts of the dataset reuse their embeddings, other texts are embedded "
-        "with the encoder of the SAE, and the cards.json of `medsae interpret` names the features.",
-        "medsae explain --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \\\n"
-        '    --cards runs/nfcorpus/features/cards.json --query "..." --doc-a "..." --doc-b "..."',
+        "(doctosae.Interpreter.explain). Texts of the dataset reuse their embeddings, other texts are "
+        "embedded with the encoder of the SAE, and the cards.json of `doctosae interpret` names the "
+        "features.",
+        "doctosae explain --dataset nfcorpus --embeddings runs/nfcorpus/embeddings \\\n"
+        "    --sae runs/nfcorpus/sae --cards runs/nfcorpus/features/cards.json \\\n"
+        '    --query "..." --doc-a "..." --doc-b "..."',
     )
     _add_dataset_arguments(sub)
     _add_embeddings_argument(sub)
@@ -725,7 +728,7 @@ def _add_explain(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
     sub.add_argument("--doc-a", required=True, help="text of the first passage")
     sub.add_argument("--doc-b", required=True, help="text of the second passage")
     sub.add_argument(
-        "--cards", type=Path, help="cards.json written by `medsae interpret`, to name the features"
+        "--cards", type=Path, help="cards.json written by `doctosae interpret`, to name the features"
     )
     sub.add_argument("--n-features", type=int, metavar="N", help="features to show (paper: 4)")
     sub.add_argument("--no-rank", action="store_true", help="skip ranking the passages against the corpus")
@@ -737,7 +740,7 @@ def _add_explain(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
 
 
 def _run_explain(args: argparse.Namespace) -> int:
-    from medsae.interpret import Interpreter, load_cards
+    from doctosae.interpret import Interpreter, load_cards
 
     cards = load_cards(args.cards) if args.cards is not None else None
     data = _load_embeddings(args.embeddings, args.dataset, args.cache_dir)
@@ -769,15 +772,17 @@ def _add_push(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
         commands,
         parent,
         "push",
-        "upload a MedSAE folder to the Hugging Face Hub, private by default",
+        "upload a DoctoSAE folder to the Hugging Face Hub, private by default",
         "Upload a checkpoint folder to the Hub as a private repository unless --public is given "
-        "(medsae.hub.push_to_hub). The license of the model card follows the training data recorded by the "
+        "(doctosae.hub.push_to_hub). The license of the model card follows the training data recorded by the "
         "trainer, and --license overrides it. Log in first with `hf auth login` or set HF_TOKEN. Only push "
         "weights trained on data you may share: the decoder and b_pre carry aggregate information about it.",
-        "medsae push runs/cure/sae my-org/medsae-bge-large-en-v1.5-k64 --license cc-by-nc-4.0",
+        "doctosae push runs/cure/sae my-org/doctosae-bge-large-en-v1.5-k64 --license cc-by-nc-4.0",
     )
-    sub.add_argument("folder", type=Path, help="MedSAE folder written by `medsae train` or `medsae convert`")
-    sub.add_argument("repo_id", help="target repository, for example my-org/medsae-bge-large-en-v1.5-k64")
+    sub.add_argument(
+        "folder", type=Path, help="DoctoSAE folder written by `doctosae train` or `doctosae convert`"
+    )
+    sub.add_argument("repo_id", help="target repository, for example my-org/doctosae-bge-large-en-v1.5-k64")
     sub.add_argument("--public", action="store_true", help="make the repository public (default: private)")
     sub.add_argument("--license", help="Hub license id of the weights, for example cc-by-nc-4.0 for CURE")
     sub.add_argument("--datasets", nargs="+", metavar="HUB_ID", help="Hub ids of the training datasets")
@@ -786,12 +791,12 @@ def _add_push(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
 
 
 def _run_push(args: argparse.Namespace) -> int:
-    from medsae.hub import push_to_hub
-    from medsae.sae import MedSAE
+    from doctosae.hub import push_to_hub
+    from doctosae.sae import DoctoSAE
 
     if not (args.folder / "config.json").is_file():  # never fall back to a Hub repository of that name
-        raise FileNotFoundError(f"{args.folder} is not a MedSAE folder (no config.json)")
-    sae = MedSAE.from_pretrained(args.folder)
+        raise FileNotFoundError(f"{args.folder} is not a DoctoSAE folder (no config.json)")
+    sae = DoctoSAE.from_pretrained(args.folder)
     if not (args.license or sae.metadata.get("license")):
         logger.warning(
             "No license is recorded for this checkpoint, so its model card says license: other (unknown). "
@@ -815,16 +820,16 @@ def _add_convert(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
         commands,
         parent,
         "convert",
-        "turn a paper checkpoint folder into a MedSAE folder",
+        "turn a paper checkpoint folder into a DoctoSAE folder",
         "Read the sae_config.json and the checkpoint written by paper/src/training/train_sae.py "
-        "(medsae.from_paper_checkpoint) and save a MedSAE folder: config.json, model.safetensors and a model "
-        "card, ready for MedSAE.from_pretrained and `medsae push`.",
-        "medsae convert runs/paper/bge_k64_seed42 checkpoints/bge_k64 --embedder bge",
+        "(doctosae.from_paper_checkpoint) and save a DoctoSAE folder: config.json, model.safetensors and a "
+        "model card, ready for DoctoSAE.from_pretrained and `doctosae push`.",
+        "doctosae convert runs/paper/bge_k64_seed42 checkpoints/bge_k64 --embedder bge",
     )
     sub.add_argument(
         "paper_folder", type=Path, help="experiment folder with sae_config.json and best_sae.pth"
     )
-    sub.add_argument("output", type=Path, help="new folder for the MedSAE checkpoint")
+    sub.add_argument("output", type=Path, help="new folder for the DoctoSAE checkpoint")
     sub.add_argument(
         "--checkpoint", help="checkpoint file (default: best_sae.pth, the best validation NDCG@10)"
     )
@@ -834,7 +839,7 @@ def _add_convert(commands: Subparsers, parent: argparse.ArgumentParser) -> None:
 
 
 def _run_convert(args: argparse.Namespace) -> int:
-    from medsae.hub import from_paper_checkpoint
+    from doctosae.hub import from_paper_checkpoint
 
     _require_new_folder(args.output)
     sae = from_paper_checkpoint(
@@ -900,7 +905,7 @@ def _add_dataset_arguments(parser: argparse.ArgumentParser) -> None:
         "--dataset",
         metavar="NAME_OR_PATH",
         required=True,
-        help="benchmark name (see `medsae datasets`) or folder in the BEIR layout (medsae.load_dataset)",
+        help="benchmark name (see `doctosae datasets`) or folder in the BEIR layout (doctosae.load_dataset)",
     )
     parser.add_argument(
         "--cache-dir", type=Path, metavar="DIR", help="Hugging Face cache folder for the downloads"
@@ -913,12 +918,12 @@ def _add_embeddings_argument(parser: argparse.ArgumentParser) -> None:
         metavar="DIR",
         type=Path,
         required=True,
-        help="embeddings of that dataset saved by `medsae embed` (medsae.EmbeddedDataset.load)",
+        help="embeddings of that dataset saved by `doctosae embed` (doctosae.EmbeddedDataset.load)",
     )
 
 
 def _add_sae_argument(parser: argparse.ArgumentParser, required: bool, default: str | None = None) -> None:
-    text = "local MedSAE folder or Hub repository"
+    text = "local DoctoSAE folder or Hub repository"
     parser.add_argument(
         "--sae",
         metavar="PATH_OR_REPO",
@@ -963,7 +968,7 @@ def _add_llm_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """The ``medsae`` argument parser."""
+    """The ``doctosae`` argument parser."""
     # Logging flags work before and after the command; SUPPRESS keeps a flag given before it from being reset.
     logging_flags = argparse.ArgumentParser(add_help=False)
     logging_flags.add_argument(
@@ -980,8 +985,8 @@ def build_parser() -> argparse.ArgumentParser:
         prog=PROG,
         parents=[logging_flags],
         formatter_class=_Formatter,
-        description="MedSAE: sparse autoencoders for interpretable and transferable medical retrieval.",
-        epilog="Run `medsae <command> --help` for the options of a command.",
+        description="DoctoSAE: sparse autoencoders for interpretable and transferable medical retrieval.",
+        epilog="Run `doctosae <command> --help` for the options of a command.",
     )
     parser.add_argument("--version", action="version", version=f"{PROG} {__version__}")
     commands = parser.add_subparsers(dest="command", metavar="<command>", required=True)
@@ -1002,13 +1007,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _configure_logging(verbose: bool, quiet: bool) -> None:
     logging.basicConfig(format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%H:%M:%S")
-    logging.getLogger("medsae").setLevel(
+    logging.getLogger("doctosae").setLevel(
         logging.DEBUG if verbose else logging.WARNING if quiet else logging.INFO
     )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Entry point of the ``medsae`` console script; returns the exit code."""
+    """Entry point of the ``doctosae`` console script; returns the exit code."""
     args = build_parser().parse_args(argv)
     verbose = getattr(args, "verbose", False)
     _configure_logging(verbose, getattr(args, "quiet", False))

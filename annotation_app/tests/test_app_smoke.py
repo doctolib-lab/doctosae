@@ -54,7 +54,7 @@ def csv_rows(path: Path) -> list[dict]:
 def test_app_starts_without_configuration():
     at = run_app()
     assert not at.exception
-    assert at.title[0].value == "MedSAE feature annotation"
+    assert at.title[0].value == "DoctoSAE feature annotation"
     assert at.info[0].value.startswith("Demo mode: these are synthetic example cases.")
     assert any("Thank you for helping with this annotation study." in m.value for m in at.markdown)
     assert any("**6 cases**" in m.value and "about 3 minutes" in m.value for m in at.markdown)

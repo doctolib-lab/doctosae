@@ -18,10 +18,10 @@ import numpy as np
 import torch
 from sklearn.metrics import ndcg_score
 
-from medsae._ids import embedding_differences, embedding_settings, resolve_embedder
-from medsae.data.dataset import EmbeddedDataset, RetrievalDataset
-from medsae.retrieval import Codes, encode_corpus, iter_cosine_scores, top_k_columns
-from medsae.sae import MedSAE
+from doctosae._ids import embedding_differences, embedding_settings, resolve_embedder
+from doctosae.data.dataset import EmbeddedDataset, RetrievalDataset
+from doctosae.retrieval import Codes, encode_corpus, iter_cosine_scores, top_k_columns
+from doctosae.sae import DoctoSAE
 
 __all__ = [
     "Judgments",
@@ -249,7 +249,7 @@ def ranking_metrics(
     }
 
 
-def warn_on_other_settings(sae: MedSAE, data: EmbeddedDataset) -> None:
+def warn_on_other_settings(sae: DoctoSAE, data: EmbeddedDataset) -> None:
     """Warn when the embeddings were computed with other settings than the training embeddings of the SAE
     (query instruction, revision, document instruction, normalization or truncation)."""
     differences = embedding_differences(
@@ -264,7 +264,7 @@ def warn_on_other_settings(sae: MedSAE, data: EmbeddedDataset) -> None:
 
 
 def evaluate(
-    sae: MedSAE | None,
+    sae: DoctoSAE | None,
     data: EmbeddedDataset,
     split: str = "test",
     k: int = 10,

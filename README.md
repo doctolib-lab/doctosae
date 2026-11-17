@@ -1,18 +1,18 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Paper](https://img.shields.io/badge/arXiv-2611.18179-b31b1b.svg?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2611.18179)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-doctolib--lab-yellow)](https://huggingface.co/doctolib-lab)
-[![CI](https://github.com/doctolib-lab/medsae/actions/workflows/ci.yml/badge.svg)](https://github.com/doctolib-lab/medsae/actions/workflows/ci.yml)
+[![CI](https://github.com/doctolib-lab/doctosae/actions/workflows/ci.yml/badge.svg)](https://github.com/doctolib-lab/doctosae/actions/workflows/ci.yml)
 
 
 
-# MedSAE <br />Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders
+# DoctoSAE <br />Explanations that Transfer: Interpreting Medical Retrieval with Sparse AutoEncoders
 
-![MedSAE overview](.github/assets/medsae_overview.png)
+![DoctoSAE overview](.github/assets/doctosae_overview.png)
 
 This repository contains the implementation of the ML4H 2026 paper [*Explanations that Transfer: Interpreting
 Medical Retrieval with Sparse AutoEncoders*](https://arxiv.org/abs/2611.18179).
 
-MedSAE makes dense medical retrieval interpretable. A TopK sparse autoencoder (SAE) is trained on the frozen
+DoctoSAE makes dense medical retrieval interpretable. A TopK sparse autoencoder (SAE) is trained on the frozen
 embeddings of a text encoder with two objectives: reconstruct each embedding, and keep queries close to their
 relevant documents through an InfoNCE loss on the sparse codes. Documents are then ranked by cosine similarity of
 codes that have at most k active features, and every feature can be described from the texts that activate it:
@@ -25,7 +25,7 @@ fires on five unseen corpora, and they explain single retrievals: which concepts
 
 | Folder | What it holds |
 | --- | --- |
-| [`package/`](package) | the `medsae` Python package: datasets, embedding, training, evaluation, interpretation, command line, tests and examples |
+| [`package/`](package) | the `doctosae` Python package: datasets, embedding, training, evaluation, interpretation, command line, tests and examples |
 | [`paper/`](paper) | the code that produced the numbers of the paper: data preparation, embedding, sweeps, out of domain evaluation and the interpretability pipeline |
 | [`annotation_app/`](annotation_app) | the Streamlit app used to collect clinician judgments of feature descriptions (code only, no annotations) |
 
@@ -37,31 +37,31 @@ fires on five unseen corpora, and they explain single retrievals: which concepts
 
 ### 01 Install 🚀
 
-MedSAE needs Python 3.11 or newer and is tested on Linux and macOS. A GPU is advised for CURE (244,600
+DoctoSAE needs Python 3.11 or newer and is tested on Linux and macOS. A GPU is advised for CURE (244,600
 passages); the small examples run on a laptop CPU.
 
 ```bash
-pip install medsae
-pip install "medsae[llm]"          # optional: LLM descriptions through any OpenAI compatible server
-pip install "medsae[local-llm]"    # optional: local LLM such as google/medgemma-4b-it
+pip install doctosae
+pip install "doctosae[llm]"          # optional: LLM descriptions through any OpenAI compatible server
+pip install "doctosae[local-llm]"    # optional: local LLM such as google/medgemma-4b-it
 ```
 
 To work on the code, install it from source:
 
 ```bash
-git clone https://github.com/doctolib-lab/medsae.git
-cd medsae/package
-pip install -e ".[dev,llm]"        # add local-llm for a local LLM such as google/medgemma-4b-it
+git clone https://github.com/doctolib-lab/doctosae.git
+cd doctosae/package
+pip install -e ".[dev,llm]"          # add local-llm for a local LLM such as google/medgemma-4b-it
 ```
 
 #### Post installation check
 
 ```bash
-medsae --version
-python -c "import medsae; print(medsae.__version__)"
+doctosae --version
+python -c "import doctosae; print(doctosae.__version__)"
 ```
 
-### 02 MedSAE step by step ➡️
+### 02 DoctoSAE step by step ➡️
 
 The snippets below chain into one script. [`package/examples/01_quickstart.py`](package/examples/01_quickstart.py)
 runs the same steps on NFCorpus with a small encoder, in a few minutes on a laptop CPU.
@@ -70,10 +70,10 @@ runs the same steps on NFCorpus with a small encoder, in a few minutes on a lapt
 
 Six medical retrieval benchmarks are registered: `cure` (the training set of the paper), `nfcorpus`, `miriad`,
 `r2med_biology`, `r2med_bioinformatics` and `r2med_medical_sciences`. They are downloaded from the Hugging Face Hub
-at pinned revisions, with the splits of the paper. Your own data loads with `medsae.load_beir_folder`.
+at pinned revisions, with the splits of the paper. Your own data loads with `doctosae.load_beir_folder`.
 
 ```python
-from medsae import list_datasets, load_dataset
+from doctosae import list_datasets, load_dataset
 
 print(list_datasets())
 dataset = load_dataset("nfcorpus")  # prints the license and terms of the dataset once
@@ -89,7 +89,7 @@ way. A local copy of a model loads with `Embedder(folder, name="BAAI/bge-large-e
 id rather than the folder.
 
 ```python
-from medsae import Embedder
+from doctosae import Embedder
 
 embedder = Embedder("BAAI/bge-large-en-v1.5")
 data = embedder.embed_dataset(dataset)  # corpus and queries of every split, as float32 arrays
@@ -104,13 +104,13 @@ The checkpoints of the paper are on the Hub, one repository per encoder and one 
 ```python
 import torch
 
-from medsae import MedSAE, load_pretrained
+from doctosae import DoctoSAE, load_pretrained
 
-pretrained = load_pretrained("bge", k=64)  # doctolib-lab/medsae-bge-large-en-v1.5/k64_m3072
+pretrained = load_pretrained("bge", k=64)  # doctolib-lab/doctosae-bge-large-en-v1.5/k64_m3072
 
 # A new SAE with m = 3d features and k = 64 active ones, the setting of Tables 2 and 3 of the paper
 torch.manual_seed(42)                   # reproducible initial weights
-sae = MedSAE(d_in=data.dim, n_latents=3 * data.dim, k=64, embedder=data.embedder)
+sae = DoctoSAE(d_in=data.dim, n_latents=3 * data.dim, k=64, embedder=data.embedder)
 ```
 
 #### 4️⃣ Train it 🏋️
@@ -122,7 +122,7 @@ which is also written to `output_dir` at every improvement. The paper picks the 
 are one point of that grid.
 
 ```python
-from medsae import Trainer, TrainingConfig
+from doctosae import Trainer, TrainingConfig
 
 trainer = Trainer(sae, TrainingConfig(), output_dir="runs/nfcorpus/sae").fit(data)
 sae = trainer.best_model
@@ -134,7 +134,7 @@ sae = trainer.best_model
 does. Pass `None` instead of an SAE to score the original dense embeddings.
 
 ```python
-from medsae import evaluate
+from doctosae import evaluate
 
 print(evaluate(None, data, split="test"))  # original embeddings
 print(evaluate(sae, data, split="test"))   # sparse codes: ndcg@10, recall@100, mrr@10, n_queries
@@ -149,7 +149,7 @@ on another dataset, and reports Pearson r, the metric of Table 3 of the paper, a
 the paper).
 
 ```python
-from medsae import Interpreter, OpenAICompatibleLLM, TransformersLLM
+from doctosae import Interpreter, OpenAICompatibleLLM, TransformersLLM
 
 interpreter = Interpreter(sae, data, split="train")
 features = interpreter.select_features(n=20)
@@ -176,7 +176,7 @@ As in Figure 2 of the paper, the cosine similarity of two codes splits into one 
 `explain` shows the features whose contributions differ most between two passages, named after their cards.
 
 ```python
-from medsae import search
+from doctosae import search
 
 indices, scores = search(sae, data.queries["test"][:1], data.corpus, top_k=10)  # first test query
 query = dataset.queries["test"].text.iloc[0]
@@ -186,46 +186,46 @@ print(interpreter.explain(query, doc_a, doc_b, cards=cards))
 
 ### 03 Command line 💻
 
-Every step has a command, and every command maps to the Python API above (`medsae <command> --help` names the
+Every step has a command, and every command maps to the Python API above (`doctosae <command> --help` names the
 function it calls).
 
 ```bash
-medsae datasets                                  # list the registered benchmarks
-medsae embed --dataset nfcorpus --model BAAI/bge-small-en-v1.5 --output runs/nfcorpus/embeddings
-medsae train --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --k 32 --output-dir runs/nfcorpus/sae
-medsae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings                          # dense
-medsae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae  # sparse
-medsae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \
+doctosae datasets                                  # list the registered benchmarks
+doctosae embed --dataset nfcorpus --model BAAI/bge-small-en-v1.5 --output runs/nfcorpus/embeddings
+doctosae train --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --k 32 --output-dir runs/nfcorpus/sae
+doctosae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings                          # dense
+doctosae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae  # sparse
+doctosae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \
     --output runs/nfcorpus/features --n-features 20
-medsae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \
+doctosae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \
     --output runs/nfcorpus/features --n-features 20 --llm openai --llm-model MODEL \
     --base-url http://localhost:8000/v1 --score --score-on r2med_biology   # LLM labels, scored out of domain
-medsae explain --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \
+doctosae explain --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \
     --cards runs/nfcorpus/features/cards.json --query "..." --doc-a "..." --doc-b "..."
-medsae pretrained --embedder bge --k 64          # id of a pretrained checkpoint
-medsae convert runs/paper/bge_k64 checkpoints/bge-k64 --embedder bge   # paper checkpoint to MedSAE folder
-medsae push checkpoints/bge-k64 my-org/medsae-bge-k64 --license cc-by-nc-4.0   # private unless --public
+doctosae pretrained --embedder bge --k 64          # id of a pretrained checkpoint
+doctosae convert runs/paper/bge_k64 checkpoints/bge-k64 --embedder bge   # paper checkpoint to DoctoSAE folder
+doctosae push checkpoints/bge-k64 my-org/doctosae-bge-k64 --license cc-by-nc-4.0   # private unless --public
 ```
 
 ### 04 Pretrained sparse autoencoders 🤗
 
-The checkpoints of the paper are in the [MedSAE collection](https://huggingface.co/collections/doctolib-lab/medsae)
+The checkpoints of the paper are in the [DoctoSAE collection](https://huggingface.co/collections/doctolib-lab/doctosae)
 of the Hugging Face Hub, in the [`doctolib-lab`](https://huggingface.co/doctolib-lab) organisation: one repository
 per encoder, and in it one folder per configuration `k{k}_m{m}` (`sae.safetensors` and `cfg.json`, with the
 training settings and the CURE scores of that checkpoint). All are trained on CURE, seed 42.
 
 | Encoder | Alias | Repository | Interpretability (Figure 1) | Retrieval |
 | --- | --- | --- | --- | --- |
-| `BAAI/bge-large-en-v1.5` | `bge` | [`doctolib-lab/medsae-bge-large-en-v1.5`](https://huggingface.co/doctolib-lab/medsae-bge-large-en-v1.5) | `k64_m3072` | `k256_m3072` |
-| `abhinand/MedEmbed-large-v0.1` | `medembed` | [`doctolib-lab/medsae-medembed-large-v0.1`](https://huggingface.co/doctolib-lab/medsae-medembed-large-v0.1) | `k64_m3072` | `k256_m3072` |
-| `gemini-embedding-001` | `gemini` | [`doctolib-lab/medsae-gemini-embedding-001`](https://huggingface.co/doctolib-lab/medsae-gemini-embedding-001) | `k128_m9216` | `k256_m9216` |
+| `BAAI/bge-large-en-v1.5` | `bge` | [`doctolib-lab/doctosae-bge-large-en-v1.5`](https://huggingface.co/doctolib-lab/doctosae-bge-large-en-v1.5) | `k64_m3072` | `k256_m3072` |
+| `abhinand/MedEmbed-large-v0.1` | `medembed` | [`doctolib-lab/doctosae-medembed-large-v0.1`](https://huggingface.co/doctolib-lab/doctosae-medembed-large-v0.1) | `k64_m3072` | `k256_m3072` |
+| `gemini-embedding-001` | `gemini` | [`doctolib-lab/doctosae-gemini-embedding-001`](https://huggingface.co/doctolib-lab/doctosae-gemini-embedding-001) | `k128_m9216` | `k256_m9216` |
 
 ```python
-from medsae import list_pretrained, load_pretrained
+from doctosae import list_pretrained, load_pretrained
 
-print(list_pretrained())            # every checkpoint id, such as doctolib-lab/medsae-bge-large-en-v1.5/k64_m3072
+print(list_pretrained())            # every checkpoint id, such as doctolib-lab/doctosae-bge-large-en-v1.5/k64_m3072
 sae = load_pretrained("bge", k=64)  # k picks the folder; without k, the smallest one
-sae = load_pretrained(repo_id="doctolib-lab/medsae-bge-large-en-v1.5/k256_m3072")  # a full id, no listing
+sae = load_pretrained(repo_id="doctolib-lab/doctosae-bge-large-en-v1.5/k256_m3072")  # a full id, no listing
 ```
 
 Loaded checkpoints record their encoder and the query instruction the paper embedded with, so
@@ -236,13 +236,13 @@ It writes a repository that `load_pretrained(repo_id=...)` reads too:
 
 ```bash
 hf auth login                                               # a token with write access to the organisation
-medsae convert runs/paper/bge_k64 checkpoints/bge-k64 --embedder bge   # or a folder written by medsae train
-medsae push checkpoints/bge-k64 my-org/medsae-bge-k64
+doctosae convert runs/paper/bge_k64 checkpoints/bge-k64 --embedder bge   # or a folder written by doctosae train
+doctosae push checkpoints/bge-k64 my-org/doctosae-bge-k64
 ```
 
 Weights inherit the terms of their training data. Every checkpoint trained on CURE is released under
 `cc-by-nc-4.0` (noncommercial), the license of CURE, whatever the license of this code. The trainer records the
-dataset license in the checkpoint and the model card picks it up; `medsae push --license` overrides it.
+dataset license in the checkpoint and the model card picks it up; `doctosae push --license` overrides it.
 
 ### 05 Results from the paper 📊
 
@@ -288,8 +288,8 @@ k = 256.
 
 ➡️ [`paper/README.md`](paper/README.md) holds the exact code behind the tables and figures: data preparation,
 embedding, the training sweeps, out of domain evaluation and the interpretability pipeline. The package
-reimplements the same method with the same defaults, and `medsae convert` turns any checkpoint of the paper code into
-a MedSAE folder. [`package/examples/02_reproduce_cure.py`](package/examples/02_reproduce_cure.py) trains the SAE
+reimplements the same method with the same defaults, and `doctosae convert` turns any checkpoint of the paper code into
+a DoctoSAE folder. [`package/examples/02_reproduce_cure.py`](package/examples/02_reproduce_cure.py) trains the SAE
 setting of Tables 2 and 3 (BGE, k = 64, m = 3072) on CURE with the package and evaluates it as in Table 1; a GPU is
 advised. [`package/examples/03_interpret_features.py`](package/examples/03_interpret_features.py) documents the
 interpretation protocol of Table 3.
@@ -333,10 +333,10 @@ question the Activation Prediction LLM answers: given the description of a featu
 
 ### 11 Responsible use ⚠️
 
-MedSAE is a research tool. Feature descriptions are written by an LLM and can be wrong, and retrieval quality on
-medical questions is far from perfect. Do not use MedSAE, its checkpoints or its explanations for diagnosis,
+DoctoSAE is a research tool. Feature descriptions are written by an LLM and can be wrong, and retrieval quality on
+medical questions is far from perfect. Do not use DoctoSAE, its checkpoints or its explanations for diagnosis,
 treatment or any other clinical decision.
 
 ### 12 Star history ⭐
 
-[![Star history of doctolib-lab/medsae](https://api.star-history.com/svg?repos=doctolib-lab/medsae&type=Date)](https://star-history.com/#doctolib-lab/medsae&Date)
+[![Star history of doctolib-lab/doctosae](https://api.star-history.com/svg?repos=doctolib-lab/doctosae&type=Date)](https://star-history.com/#doctolib-lab/doctosae&Date)

@@ -1,9 +1,9 @@
 cff-version: 1.2.0
-message: "If you use MedSAE, please cite the paper below."
-title: "MedSAE: sparse autoencoders for interpretable medical retrieval"
+message: "If you use DoctoSAE, please cite the paper below."
+title: "DoctoSAE: sparse autoencoders for interpretable medical retrieval"
 type: software
 license: Apache-2.0
-repository-code: "https://github.com/doctolib-lab/medsae"
+repository-code: "https://github.com/doctolib-lab/doctosae"
 version: 0.1.0
 authors:
   - family-names: Brison

@@ -1,6 +1,6 @@
 """Interpreter LLM labels: a topic, a description and keywords for each feature (Section 6.1, Appendix D.2).
 
-The prompts are the paper's (:mod:`medsae.interpret.prompts`) and replies are parsed exactly as its local
+The prompts are the paper's (:mod:`doctosae.interpret.prompts`) and replies are parsed exactly as its local
 backend did (``label_neurons._parse_json_label``): the model reasons briefly, then closes with a JSON object.
 The last balanced ``{...}`` group that validates wins; a reply cut by the token budget is repaired when it
 still yields a topic; anything else becomes a ``PARSE_ERROR`` label that keeps the raw reply.
@@ -18,9 +18,9 @@ from typing import Any
 
 from tqdm.auto import tqdm
 
-from medsae.interpret.cards import LABEL_ERROR, PARSE_ERROR, FeatureCard
-from medsae.interpret.llm import LLM, generate_isolated
-from medsae.interpret.prompts import interpreter_system_prompt, interpreter_user_prompt
+from doctosae.interpret.cards import LABEL_ERROR, PARSE_ERROR, FeatureCard
+from doctosae.interpret.llm import LLM, generate_isolated
+from doctosae.interpret.prompts import interpreter_system_prompt, interpreter_user_prompt
 
 __all__ = ["MAX_FAILED_CHUNKS", "MAX_KEYWORDS", "Label", "label_cards", "label_from_json", "parse_label"]
 

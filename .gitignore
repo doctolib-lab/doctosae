@@ -36,7 +36,7 @@ gcp-*.json
 /package/*.json
 
 # Data, embeddings, checkpoints and experiment outputs
-# (anchored: an unanchored "data/" would also hide the package/src/medsae/data subpackage)
+# (anchored: an unanchored "data/" would also hide the package/src/doctosae/data subpackage)
 /data/
 /paper/data/
 /package/data/
@@ -44,7 +44,7 @@ runs/
 /logs/
 outputs/
 cache/
-.medsae_cache/
+.doctosae_cache/
 *.pkl
 *.npy
 *.npz

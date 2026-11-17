@@ -1,4 +1,4 @@
-"""The :class:`Interpreter`: select, describe, score and explain the features of a MedSAE (Section 6)."""
+"""The :class:`Interpreter`: select, describe, score and explain the features of a DoctoSAE (Section 6)."""
 
 from __future__ import annotations
 
@@ -12,20 +12,20 @@ import numpy as np
 import pandas as pd
 import scipy.sparse as sp
 
-from medsae._ids import resolve_embedder
-from medsae.interpret.activations import (
+from doctosae._ids import resolve_embedder
+from doctosae.interpret.activations import (
     ActivationIndex,
     CodedTexts,
     article_keys,
     encode_sparse,
     frame_titles,
 )
-from medsae.interpret.cards import FeatureCard, load_cards, save_cards
-from medsae.interpret.explain import RetrievalExplanation, explain_codes, unit
-from medsae.interpret.labeling import label_cards
-from medsae.interpret.llm import LLM
-from medsae.interpret.prompts import METHODS
-from medsae.interpret.scoring import (
+from doctosae.interpret.cards import FeatureCard, load_cards, save_cards
+from doctosae.interpret.explain import RetrievalExplanation, explain_codes, unit
+from doctosae.interpret.labeling import label_cards
+from doctosae.interpret.llm import LLM
+from doctosae.interpret.prompts import METHODS
+from doctosae.interpret.scoring import (
     RANK_BAND,
     EvalPool,
     PoolSource,
@@ -33,21 +33,21 @@ from medsae.interpret.scoring import (
     exemplars,
     run_activation_prediction,
 )
-from medsae.interpret.selection import select_features
-from medsae.interpret.tfidf import N_TERMS, TfidfTerms
-from medsae.metrics import warn_on_other_settings
+from doctosae.interpret.selection import select_features
+from doctosae.interpret.tfidf import N_TERMS, TfidfTerms
+from doctosae.metrics import warn_on_other_settings
 
 if TYPE_CHECKING:
-    from medsae.data.dataset import EmbeddedDataset
-    from medsae.embed import Embedder
-    from medsae.sae import MedSAE
+    from doctosae.data.dataset import EmbeddedDataset
+    from doctosae.embed import Embedder
+    from doctosae.sae import DoctoSAE
 
 __all__ = ["Interpreter"]
 
 logger = logging.getLogger(__name__)
 
 
-def _other_embedder(sae: MedSAE, data: EmbeddedDataset) -> bool:
+def _other_embedder(sae: DoctoSAE, data: EmbeddedDataset) -> bool:
     """True when the SAE and the data both name their encoder and the names differ (aliases resolved)."""
     if not (sae.embedder and data.embedder):
         return False
@@ -65,7 +65,7 @@ def _pool_source(name: str, frame: pd.DataFrame, codes: sp.csr_matrix) -> PoolSo
 
 
 class Interpreter:
-    """Interpret the features of a :class:`~medsae.MedSAE` on an embedded retrieval dataset.
+    """Interpret the features of a :class:`~doctosae.DoctoSAE` on an embedded retrieval dataset.
 
     The evidence shown for a feature comes from ``data``: the documents of its ``corpus_split`` corpus split
     (the whole corpus when the dataset defines no corpus split) and the queries of ``split``, both
@@ -97,7 +97,7 @@ class Interpreter:
 
     def __init__(
         self,
-        sae: MedSAE,
+        sae: DoctoSAE,
         data: EmbeddedDataset,
         split: str | None = "train",
         device: str | None = None,
@@ -382,7 +382,7 @@ class Interpreter:
     def _embed(self, text: str, query: bool, embedder: Embedder | None) -> np.ndarray:
         if embedder is None:
             if self._embedder is None:
-                from medsae.embed import Embedder
+                from doctosae.embed import Embedder
 
                 # The encoder runs where the interpreter was asked to run (an API encoder has no device);
                 # it embeds one text at a time, so without a progress bar.

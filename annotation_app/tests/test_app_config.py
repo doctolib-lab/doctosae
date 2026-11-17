@@ -14,7 +14,7 @@ from config import ROOT, SettingsError, as_list, load_settings, resolve
 def test_defaults_without_any_configuration(monkeypatch):
     monkeypatch.delenv("ANSWERS_CSV")
     settings = load_settings()
-    assert settings.app_title == "MedSAE feature annotation"
+    assert settings.app_title == "DoctoSAE feature annotation"
     assert (settings.study_name, settings.app_password, settings.contact_email) == ("", "", "")
     assert settings.annotators == ()
     assert settings.cases_file == config.EXAMPLE_CASES and settings.demo
@@ -138,15 +138,15 @@ def test_streamlit_secrets_files(monkeypatch, tmp_path):
     from streamlit.runtime.secrets import Secrets
 
     # Streamlit copies text secrets into the environment; registering the key restores it after the test.
-    monkeypatch.setenv("MEDSAE_TEST_VALUE", "")
+    monkeypatch.setenv("DOCTOSAE_TEST_VALUE", "")
     path = tmp_path / "secrets.toml"
     previous = st_config.get_option("secrets.files")
     st_config.set_option("secrets.files", [str(path)])
     try:
         assert config._available(Secrets()) == {}
-        path.write_text('MEDSAE_TEST_VALUE = "x"\n[table]\nkey = "value"\n', encoding="utf-8")
+        path.write_text('DOCTOSAE_TEST_VALUE = "x"\n[table]\nkey = "value"\n', encoding="utf-8")
         secrets = config._available(Secrets())
-        assert secrets["MEDSAE_TEST_VALUE"] == "x"
+        assert secrets["DOCTOSAE_TEST_VALUE"] == "x"
         assert isinstance(secrets["table"], Mapping) and dict(secrets["table"]) == {"key": "value"}
         path.write_text("this is = = not toml\n", encoding="utf-8")
         with pytest.raises(SettingsError):

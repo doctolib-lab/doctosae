@@ -17,7 +17,7 @@ import torch
 from sklearn.preprocessing import normalize
 from tqdm.auto import tqdm
 
-from medsae.sae import MedSAE
+from doctosae.sae import DoctoSAE
 
 __all__ = [
     "SCORE_BLOCK_BYTES",
@@ -42,7 +42,7 @@ def _embedding_matrix(embeddings: np.ndarray, d_in: int | None = None) -> np.nda
 
 
 def encode_corpus(
-    sae: MedSAE,
+    sae: DoctoSAE,
     embeddings: np.ndarray,
     batch_size: int = 4096,
     device: torch.device | str | None = None,
@@ -138,7 +138,7 @@ def top_k_columns(scores: np.ndarray, k: int) -> np.ndarray:
 
 
 def search(
-    sae: MedSAE | None,
+    sae: DoctoSAE | None,
     query_embeddings: np.ndarray,
     corpus_embeddings: np.ndarray,
     top_k: int = 10,

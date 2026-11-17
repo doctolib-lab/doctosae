@@ -6,13 +6,13 @@ import scipy.sparse as sp
 import torch
 from sklearn.metrics.pairwise import cosine_similarity
 
-from medsae.retrieval import cosine_scores, encode_corpus, iter_cosine_scores, search, top_k_columns
-from medsae.sae import MedSAE
+from doctosae.retrieval import cosine_scores, encode_corpus, iter_cosine_scores, search, top_k_columns
+from doctosae.sae import DoctoSAE
 
 
-def _sae(d_in: int = 12, n_latents: int = 40, k: int = 5, seed: int = 0, **kwargs) -> MedSAE:
+def _sae(d_in: int = 12, n_latents: int = 40, k: int = 5, seed: int = 0, **kwargs) -> DoctoSAE:
     torch.manual_seed(seed)
-    return MedSAE(d_in=d_in, n_latents=n_latents, k=k, **kwargs)
+    return DoctoSAE(d_in=d_in, n_latents=n_latents, k=k, **kwargs)
 
 
 def _embeddings(n: int, dim: int = 12, seed: int = 0) -> np.ndarray:

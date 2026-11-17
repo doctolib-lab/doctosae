@@ -4,7 +4,7 @@
 reproduces ``paper/src/data_prep/split_corpus.py``. Both draw from one ``numpy.random.default_rng(seed)``
 and depend on the order of their input: the same ids in another order give another split. For CURE the
 input order is the concatenation of the ten discipline files in alphabetical order, which yields
-1,400 / 200 / 400 queries and 223,425 / 21,175 corpus rows (see :func:`medsae.data.loaders.load_cure`, which
+1,400 / 200 / 400 queries and 223,425 / 21,175 corpus rows (see :func:`doctosae.data.loaders.load_cure`, which
 also compares the result with checksums of the paper split).
 
 NumPy does not formally promise that ``Generator`` streams stay identical across releases, hence
@@ -19,7 +19,7 @@ from collections.abc import Hashable, Iterable, Sequence
 import numpy as np
 import pandas as pd
 
-from medsae.data.dataset import RetrievalDataset
+from doctosae.data.dataset import RetrievalDataset
 
 __all__ = ["split_queries", "split_corpus", "ids_sha256"]
 
@@ -88,7 +88,7 @@ def split_corpus(
     treatment), hence the empty ``val_required`` default.
 
     Args:
-        corpus: Document ids in corpus order, or a :class:`~medsae.data.RetrievalDataset`. For a dataset,
+        corpus: Document ids in corpus order, or a :class:`~doctosae.data.RetrievalDataset`. For a dataset,
             ``train_required`` defaults to the positives (``score >= positive_threshold``, that is
             ``score > 0`` for every benchmark of the paper) of its ``train_split`` queries.
         train_required: Document ids forced into train.

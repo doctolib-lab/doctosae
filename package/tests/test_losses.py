@@ -7,7 +7,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from medsae.training.losses import (
+from doctosae.training.losses import (
     info_nce_loss,
     positive_mask,
     reconstruction_loss,

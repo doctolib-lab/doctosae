@@ -1,4 +1,4 @@
-"""Interpret the features of a MedSAE: feature cards, Activation Prediction scores and one explanation.
+"""Interpret the features of a DoctoSAE: feature cards, Activation Prediction scores and one explanation.
 
 By default the language model is ``FakeLLM``, a deterministic stand in that needs no download: the pipeline
 runs end to end in seconds, but its labels and scores are placeholders. For real interpretations pass
@@ -29,23 +29,23 @@ import argparse
 import logging
 from pathlib import Path
 
-from medsae import (
+from doctosae import (
+    DoctoSAE,
     EmbeddedDataset,
     Embedder,
     Interpreter,
-    MedSAE,
     OpenAICompatibleLLM,
     TransformersLLM,
     load_dataset,
     load_pretrained,
     search,
 )
-from medsae.interpret import LLM, FakeLLM, ScoreReport
+from doctosae.interpret import LLM, FakeLLM, ScoreReport
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Describe, score and use the features of a MedSAE.")
-    parser.add_argument("--sae", default="runs/quickstart/sae", help="MedSAE folder or Hub checkpoint id")
+    parser = argparse.ArgumentParser(description="Describe, score and use the features of a DoctoSAE.")
+    parser.add_argument("--sae", default="runs/quickstart/sae", help="DoctoSAE folder or Hub checkpoint id")
     parser.add_argument("--dataset", default="nfcorpus", help="dataset to interpret on (default: nfcorpus)")
     parser.add_argument(
         "--embeddings",
@@ -96,7 +96,7 @@ def table(report: ScoreReport) -> str:
     return report.to_frame().to_string(float_format="{:.3f}".format)
 
 
-def embedded(name: str, sae: MedSAE, folder: Path | None, device: str | None) -> EmbeddedDataset:
+def embedded(name: str, sae: DoctoSAE, folder: Path | None, device: str | None) -> EmbeddedDataset:
     """Embeddings of ``name`` by the encoder the SAE was trained on (reused when ``folder`` holds them)."""
     dataset = load_dataset(name)
     embedder = Embedder.from_sae(sae, device=device)
@@ -115,8 +115,8 @@ def embedded(name: str, sae: MedSAE, folder: Path | None, device: str | None) ->
 def main() -> None:
     args = parse_args()
     logging.basicConfig(format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    logging.getLogger("medsae").setLevel(logging.INFO)  # progress of medsae, warnings only from libraries
-    sae = MedSAE.from_pretrained(args.sae) if Path(args.sae).exists() else load_pretrained(repo_id=args.sae)
+    logging.getLogger("doctosae").setLevel(logging.INFO)  # progress of doctosae, warnings only from libraries
+    sae = DoctoSAE.from_pretrained(args.sae) if Path(args.sae).exists() else load_pretrained(repo_id=args.sae)
     data = embedded(args.dataset, sae, args.embeddings, args.device)
     llm = build_llm(args)
 

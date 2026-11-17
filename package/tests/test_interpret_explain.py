@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import scipy.sparse as sp
 
-from medsae.interpret.explain import explain_codes, unit
+from doctosae.interpret.explain import explain_codes, unit
 
 # Printed values: (features, query, passage A, passage B, favoured passage per feature), L2 normalised codes.
 PANELS = {

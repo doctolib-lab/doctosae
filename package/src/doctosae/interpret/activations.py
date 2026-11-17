@@ -22,7 +22,7 @@ import scipy.sparse as sp
 from tqdm.auto import tqdm
 
 if TYPE_CHECKING:
-    from medsae.sae import MedSAE
+    from doctosae.sae import DoctoSAE
 
 __all__ = [
     "MAX_PER_ARTICLE",
@@ -47,7 +47,7 @@ MAX_PER_ARTICLE = 2
 
 
 def encode_sparse(
-    sae: MedSAE, embeddings: np.ndarray, batch_size: int = 1024, show_progress: bool = False
+    sae: DoctoSAE, embeddings: np.ndarray, batch_size: int = 1024, show_progress: bool = False
 ) -> sp.csr_matrix:
     """SAE codes of dense embeddings as a CSR matrix ``[n, n_latents]``, encoded in chunks on the SAE device.
 

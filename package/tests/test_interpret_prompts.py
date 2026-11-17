@@ -6,8 +6,8 @@ import hashlib
 
 import pytest
 
-from medsae.interpret import prompts
-from medsae.interpret.cards import PARSE_ERROR, FeatureCard
+from doctosae.interpret import prompts
+from doctosae.interpret.cards import PARSE_ERROR, FeatureCard
 
 # SHA256 of the rendered prompts of the paper code (label_neurons.py, predict_neurons_binary.py).
 INTERPRETER_SYSTEM_DIGEST = "831f3206a46701a275412aadd0744593fe7c8bcc3078f5b386fe906bfca0f3ad"

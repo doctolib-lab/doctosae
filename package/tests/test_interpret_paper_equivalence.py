@@ -20,11 +20,11 @@ import pandas as pd
 import pytest
 import torch
 
-from medsae.data.dataset import EmbeddedDataset, RetrievalDataset
-from medsae.interpret import FakeLLM, Interpreter
-from medsae.interpret.activations import encode_sparse
-from medsae.interpret.labeling import parse_label
-from medsae.interpret.prompts import (
+from doctosae.data.dataset import EmbeddedDataset, RetrievalDataset
+from doctosae.interpret import FakeLLM, Interpreter
+from doctosae.interpret.activations import encode_sparse
+from doctosae.interpret.labeling import parse_label
+from doctosae.interpret.prompts import (
     INTERPRETER_SYSTEM_PROMPT,
     METHOD_DEFINITIONS,
     OOD_NOTE,
@@ -39,8 +39,8 @@ from medsae.interpret.prompts import (
     label_instruction,
     render_evidence,
 )
-from medsae.interpret.scoring import feature_aurocs, feature_metrics, parse_score
-from medsae.sae import MedSAE
+from doctosae.interpret.scoring import feature_aurocs, feature_metrics, parse_score
+from doctosae.sae import DoctoSAE
 
 PAPER_ROOT = Path(__file__).resolve().parents[2] / "paper"
 
@@ -397,7 +397,7 @@ def run_build(paper, monkeypatch, tmp_path: Path, profiles: dict, extra: list[st
 @pytest.fixture(scope="module")
 def setting():
     torch.manual_seed(0)
-    sae = MedSAE(d_in=D_IN, n_latents=N_LATENTS, k=K, embedder="toy")
+    sae = DoctoSAE(d_in=D_IN, n_latents=N_LATENTS, k=K, embedder="toy")
     data = make_data("toy", seed=0, n_articles=120)
     return sae, data, Interpreter(sae, data, show_progress=False)
 

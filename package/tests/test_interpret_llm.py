@@ -8,9 +8,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from medsae.interpret.cards import FeatureCard
-from medsae.interpret.labeling import parse_label
-from medsae.interpret.llm import (
+from doctosae.interpret.cards import FeatureCard
+from doctosae.interpret.labeling import parse_label
+from doctosae.interpret.llm import (
     LLM,
     FakeLLM,
     OpenAICompatibleLLM,
@@ -19,14 +19,14 @@ from medsae.interpret.llm import (
     _dtype_keyword,
     generate_isolated,
 )
-from medsae.interpret.prompts import (
+from doctosae.interpret.prompts import (
     feature_description,
     interpreter_system_prompt,
     interpreter_user_prompt,
     judge_system_prompt,
     judge_user_prompt,
 )
-from medsae.interpret.scoring import parse_score
+from doctosae.interpret.scoring import parse_score
 
 
 def make_card() -> FeatureCard:
@@ -165,7 +165,7 @@ def test_openai_compatible_llm_never_falls_back_to_a_public_endpoint(monkeypatch
     monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
     with pytest.raises(ValueError, match="refusing to fall back"):
         OpenAICompatibleLLM("served-model")
-    with caplog.at_level("WARNING", logger="medsae.interpret.llm"):
+    with caplog.at_level("WARNING", logger="doctosae.interpret.llm"):
         OpenAICompatibleLLM("gpt-model", base_url="https://api.openai.com/v1", api_key="test-key")
     assert "sent to api.openai.com" in caplog.text
 

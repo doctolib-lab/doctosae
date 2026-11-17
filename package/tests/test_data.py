@@ -2,7 +2,7 @@
 
 Offline tests serve tiny synthetic copies of the Hub files through a fake ``_hub_file``; tests marked
 ``network`` download the real benchmarks and check the sizes the paper reports. The CURE and MIRIAD network
-tests download about 300 MB each and also need ``MEDSAE_LARGE_DOWNLOADS=1``.
+tests download about 300 MB each and also need ``DOCTOSAE_LARGE_DOWNLOADS=1``.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from medsae.data import (
+from doctosae.data import (
     CURE_DISCIPLINES,
     DATASETS,
     RetrievalDataset,
@@ -35,8 +35,8 @@ from medsae.data import (
 )
 
 large_downloads = pytest.mark.skipif(
-    os.environ.get("MEDSAE_LARGE_DOWNLOADS") != "1",
-    reason="about 300 MB to download: MEDSAE_LARGE_DOWNLOADS=1",
+    os.environ.get("DOCTOSAE_LARGE_DOWNLOADS") != "1",
+    reason="about 300 MB to download: DOCTOSAE_LARGE_DOWNLOADS=1",
 )
 
 
@@ -150,7 +150,7 @@ def test_beir_folder_keeps_the_first_row_of_a_repeated_document_id(tmp_path, cap
     write_jsonl(root / "corpus.jsonl", [{"_id": "a", "text": "first"}, {"_id": "a", "text": "second"}])
     write_jsonl(root / "queries.jsonl", [{"_id": "q", "text": "query"}])
     write_text(root / "qrels" / "test.tsv", "query-id\tcorpus-id\tscore\nq\ta\t1\n")
-    with caplog.at_level(logging.WARNING, logger="medsae"):
+    with caplog.at_level(logging.WARNING, logger="doctosae"):
         dataset = load_beir_folder(root)
     assert dataset.corpus["text"].tolist() == ["first"]
     assert "dropping 1 rows" in caplog.text
@@ -203,7 +203,7 @@ def test_a_path_loads_the_folder_even_with_a_registry_name(beir_folder, tmp_path
     monkeypatch.setitem(
         registry.DATASETS, "nfcorpus", dataclasses.replace(DATASETS["nfcorpus"], loader=loader)
     )
-    with caplog.at_level(logging.WARNING, logger="medsae.data.registry"):
+    with caplog.at_level(logging.WARNING, logger="doctosae.data.registry"):
         load_dataset("nfcorpus")  # a bare name keeps meaning the registry, with a warning
     assert calls == [1] and "both a registered dataset and a folder" in caplog.text
 
@@ -261,7 +261,7 @@ def test_terms_are_printed_once_per_session(fake_hub, caplog, monkeypatch):
     monkeypatch.setitem(
         DATASETS, "cure", dataclasses.replace(DATASETS["cure"], loader=lambda info, cache: built)
     )
-    with caplog.at_level(logging.WARNING, logger="medsae"):
+    with caplog.at_level(logging.WARNING, logger="doctosae"):
         load_dataset("cure")
         load_dataset("CURE")
     notices = [record for record in caplog.records if "terms" in record.getMessage()]
@@ -301,7 +301,7 @@ def write_fake_cure(root: Path) -> None:
 def test_cure_recipe(fake_hub, caplog):
     root, requests = fake_hub
     write_fake_cure(root)
-    with caplog.at_level(logging.WARNING, logger="medsae"):
+    with caplog.at_level(logging.WARNING, logger="doctosae"):
         dataset = load_dataset("cure")
     assert {revision for _, _, revision in requests} == {DATASETS["cure"].revision}
     corpus = dataset.corpus.set_index("doc_id")
@@ -341,7 +341,7 @@ def test_cure_other_languages_reuse_the_english_split(fake_hub):
 def test_cure_checksum_guard_is_skipped_off_the_paper_settings(fake_hub, caplog):
     root, requests = fake_hub
     write_fake_cure(root)
-    with caplog.at_level(logging.WARNING, logger="medsae.data.loaders"):
+    with caplog.at_level(logging.WARNING, logger="doctosae.data.loaders"):
         dataset = load_dataset("cure", seed=1, revision="main")
     assert "differs" not in caplog.text
     assert {revision for _, _, revision in requests} == {"main"}
@@ -439,7 +439,7 @@ def test_r2med_recipe(fake_hub, caplog):
         base / "qrels.jsonl",
         [{"q_id": "0", "p_id": "a.txt", "score": 1}, {"q_id": "1", "p_id": "b.txt", "score": 1}],
     )
-    with caplog.at_level(logging.WARNING, logger="medsae"):
+    with caplog.at_level(logging.WARNING, logger="doctosae"):
         dataset = load_dataset("R2MED-Biology")
     assert dataset.name == "r2med_biology" and dataset.splits == ["test"]
     assert dataset.corpus["text"].tolist() == [" leading space", "b"]  # raw text, first row of a repeated id

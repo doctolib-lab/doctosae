@@ -13,15 +13,15 @@ Language models plug in through :class:`LLM`: :class:`TransformersLLM` (local, t
 :class:`OpenAICompatibleLLM` (any OpenAI compatible server) or :class:`FakeLLM` (tests and documentation).
 """
 
-from medsae.interpret.activations import ActivationIndex, CodedTexts, encode_sparse
-from medsae.interpret.cards import FeatureCard, load_cards, save_cards
-from medsae.interpret.explain import RetrievalExplanation, explain_codes
-from medsae.interpret.interpreter import Interpreter
-from medsae.interpret.labeling import Label, label_cards, parse_label
-from medsae.interpret.llm import LLM, FakeLLM, OpenAICompatibleLLM, TransformersLLM
-from medsae.interpret.scoring import EvalPool, ScoreReport, parse_score
-from medsae.interpret.selection import select_features, theme_entropy
-from medsae.interpret.tfidf import TfidfTerms
+from doctosae.interpret.activations import ActivationIndex, CodedTexts, encode_sparse
+from doctosae.interpret.cards import FeatureCard, load_cards, save_cards
+from doctosae.interpret.explain import RetrievalExplanation, explain_codes
+from doctosae.interpret.interpreter import Interpreter
+from doctosae.interpret.labeling import Label, label_cards, parse_label
+from doctosae.interpret.llm import LLM, FakeLLM, OpenAICompatibleLLM, TransformersLLM
+from doctosae.interpret.scoring import EvalPool, ScoreReport, parse_score
+from doctosae.interpret.selection import select_features, theme_entropy
+from doctosae.interpret.tfidf import TfidfTerms
 
 __all__ = [
     "LLM",

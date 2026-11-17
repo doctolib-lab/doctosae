@@ -1,4 +1,4 @@
-# Publishes the medsae package with PyPI Trusted Publishing (no API token stored in GitHub).
+# Publishes the doctosae package with PyPI Trusted Publishing (no API token stored in GitHub).
 # A GitHub release publishes to PyPI. A manual run publishes to TestPyPI (default) or PyPI.
 name: Publish
 
@@ -33,7 +33,7 @@ jobs:
       - name: Check that the release tag matches the package version
         if: github.event_name == 'release'
         run: |
-          version=$(python -c "import re, pathlib; print(re.search(r'__version__ = \"([^\"]+)\"', pathlib.Path('src/medsae/__init__.py').read_text()).group(1))")
+          version=$(python -c "import re, pathlib; print(re.search(r'__version__ = \"([^\"]+)\"', pathlib.Path('src/doctosae/__init__.py').read_text()).group(1))")
           test "${GITHUB_REF_NAME}" = "v${version}" || { echo "tag ${GITHUB_REF_NAME} does not match version ${version}"; exit 1; }
       - name: Build
         run: |
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/medsae
+      url: https://pypi.org/p/doctosae
     permissions:
       id-token: write
     steps:
@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/medsae
+      url: https://test.pypi.org/p/doctosae
     permissions:
       id-token: write
     steps:

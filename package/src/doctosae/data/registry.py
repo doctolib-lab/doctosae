@@ -1,7 +1,7 @@
 """Registry of the six retrieval benchmarks of the paper, pinned to the Hub revisions behind its numbers.
 
 ``load_dataset("cure")`` rebuilds a benchmark exactly as the paper code did (see
-:mod:`medsae.data.loaders`). The data are downloaded at run time from their official Hub repositories and
+:mod:`doctosae.data.loaders`). The data are downloaded at run time from their official Hub repositories and
 never shipped with the package: each benchmark has its own license, printed once per session when it is
 first loaded.
 """
@@ -14,8 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from medsae.data.dataset import RetrievalDataset
-from medsae.data.loaders import load_beir_folder, load_cure, load_miriad, load_nfcorpus, load_r2med
+from doctosae.data.dataset import RetrievalDataset
+from doctosae.data.loaders import load_beir_folder, load_cure, load_miriad, load_nfcorpus, load_r2med
 
 __all__ = [
     "DATASETS",
@@ -196,7 +196,7 @@ def load_dataset(name: str | Path, cache_dir: str | Path | None = None, **kwargs
     Args:
         name: Registry name (see :func:`list_datasets`; any case, hyphens accepted) or the path of a folder
             in the BEIR layout, which is then named after the folder (call
-            :func:`~medsae.data.load_beir_folder` to choose another name). A :class:`~pathlib.Path`, or a
+            :func:`~doctosae.data.load_beir_folder` to choose another name). A :class:`~pathlib.Path`, or a
             string with a path separator or starting with ``.`` or ``~``, is read as a folder first.
         cache_dir: Hugging Face cache folder for the downloaded files (the default Hub cache when ``None``).
         **kwargs: Options of the dataset loader, for example ``revision``, ``token``, ``language`` (CURE)

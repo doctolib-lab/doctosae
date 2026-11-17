@@ -38,10 +38,10 @@ from scipy.stats import spearmanr
 from sklearn.metrics import roc_auc_score
 from tqdm.auto import tqdm
 
-from medsae.interpret.activations import MAX_PER_ARTICLE, dedup_first
-from medsae.interpret.cards import FeatureCard
-from medsae.interpret.llm import LLM, generate_isolated
-from medsae.interpret.prompts import (
+from doctosae.interpret.activations import MAX_PER_ARTICLE, dedup_first
+from doctosae.interpret.cards import FeatureCard
+from doctosae.interpret.llm import LLM, generate_isolated
+from doctosae.interpret.prompts import (
     METHODS,
     cap_text,
     feature_description,
