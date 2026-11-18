@@ -27,31 +27,42 @@ DoctoSAE needs Python 3.11 or newer. A GPU is advised for CURE; the small exampl
 
 ## Quickstart
 
+Start from a checkpoint of the paper in the
+[DoctoSAE collection](https://huggingface.co/collections/doctolib-lab/doctosae), with no training:
+
 ```python
-from doctosae import DoctoSAE, Embedder, Interpreter, Trainer, TrainingConfig, evaluate, load_dataset
+from doctosae import Embedder, Interpreter, evaluate, load_dataset, load_pretrained
 
-dataset = load_dataset("nfcorpus")                                # cure, miriad, r2med_biology, ...
-data = Embedder("BAAI/bge-small-en-v1.5").embed_dataset(dataset)  # frozen encoder
+sae = load_pretrained("bge", k=256)                   # doctolib-lab/doctosae-bge-large-en-v1.5/k256_m3072
+dataset = load_dataset("nfcorpus")                    # cure, miriad, r2med_biology, ...
+data = Embedder.from_sae(sae).embed_dataset(dataset)  # the frozen encoder the SAE was trained on
 
-sae = DoctoSAE(d_in=data.dim, n_latents=3 * data.dim, k=32, embedder=data.embedder)
-sae = Trainer(sae, TrainingConfig(), output_dir="runs/nfcorpus/sae").fit(data).best_model  # paper settings
-
-print(evaluate(None, data, split="test"))  # dense embeddings
-print(evaluate(sae, data, split="test"))   # sparse codes: ndcg@10, recall@100, mrr@10
+print(evaluate(None, data, split="test"))  # dense embeddings: ndcg@10 0.382
+print(evaluate(sae, data, split="test"))   # sparse codes: ndcg@10 0.357, as in Table 1 of the paper
 
 interpreter = Interpreter(sae, data, split="train")
 for card in interpreter.describe(interpreter.select_features(n=3)):
     print(card.to_markdown())
 ```
 
-The same steps from the command line:
+Or train your own SAE on the same embeddings, with the settings of the paper:
+
+```python
+from doctosae import DoctoSAE, Trainer, TrainingConfig
+
+my_sae = DoctoSAE(d_in=data.dim, n_latents=3 * data.dim, k=64, embedder=data.embedder)
+my_sae = Trainer(my_sae, TrainingConfig(), output_dir="runs/nfcorpus/sae").fit(data).best_model
+```
+
+The same steps from the command line, where `--sae` takes a Hub checkpoint id or a folder:
 
 ```bash
-doctosae embed --dataset nfcorpus --model BAAI/bge-small-en-v1.5 --output runs/nfcorpus/embeddings
-doctosae train --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --k 32 --output-dir runs/nfcorpus/sae
-doctosae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae
-doctosae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \
+SAE=doctolib-lab/doctosae-bge-large-en-v1.5/k256_m3072
+doctosae embed --dataset nfcorpus --sae $SAE --output runs/nfcorpus/embeddings
+doctosae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae $SAE
+doctosae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae $SAE \
     --output runs/nfcorpus/features --n-features 20
+doctosae train --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --k 64 --output-dir runs/nfcorpus/sae
 ```
 
 ## What is inside

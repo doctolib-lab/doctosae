@@ -1,5 +1,6 @@
 # Publishes the doctosae package with PyPI Trusted Publishing (no API token stored in GitHub).
 # A GitHub release publishes to PyPI. A manual run publishes to TestPyPI (default) or PyPI.
+# Not run today: releases are built and uploaded from a maintainer machine, see "Releasing" in CONTRIBUTING.md.
 name: Publish
 
 on:

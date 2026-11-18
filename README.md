@@ -1,3 +1,5 @@
+[![PyPI](https://img.shields.io/pypi/v/doctosae.svg)](https://pypi.org/project/doctosae/)
+[![Python](https://img.shields.io/pypi/pyversions/doctosae.svg)](https://pypi.org/project/doctosae/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Paper](https://img.shields.io/badge/arXiv-2611.18179-b31b1b.svg?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2611.18179)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-doctolib--lab-yellow)](https://huggingface.co/doctolib-lab)
@@ -63,8 +65,9 @@ python -c "import doctosae; print(doctosae.__version__)"
 
 ### 02 DoctoSAE step by step ➡️
 
-The snippets below chain into one script. [`package/examples/01_quickstart.py`](package/examples/01_quickstart.py)
-runs the same steps on NFCorpus with a small encoder, in a few minutes on a laptop CPU.
+The snippets below chain into one script, from a pretrained checkpoint of the paper. To train your own SAE instead,
+[`package/examples/01_quickstart.py`](package/examples/01_quickstart.py) runs every step on NFCorpus with a small
+encoder, in a few minutes on a laptop CPU.
 
 #### 1️⃣ Load a dataset 💽
 
@@ -96,48 +99,49 @@ data = embedder.embed_dataset(dataset)  # corpus and queries of every split, as 
 data.save("runs/nfcorpus/embeddings")   # reload later with EmbeddedDataset.load(path, dataset)
 ```
 
-#### 3️⃣ Choose an SAE from the Hub, or create one 🎛️
+#### 3️⃣ Load a pretrained SAE from the Hub 🤗
 
-The checkpoints of the paper are on the Hub, one repository per encoder and one folder per k (see
-[04](#04-pretrained-sparse-autoencoders-)).
+The checkpoints of the paper are in the [DoctoSAE collection](https://huggingface.co/collections/doctolib-lab/doctosae),
+one repository per encoder and one folder per k (see [04](#04-pretrained-sparse-autoencoders-)). `k256_m3072` is
+the BGE checkpoint that retrieves best; steps 5 to 7 use it as is, with no training.
+
+```python
+from doctosae import load_pretrained
+
+sae = load_pretrained("bge", k=256)  # doctolib-lab/doctosae-bge-large-en-v1.5/k256_m3072, trained on CURE
+```
+
+#### 4️⃣ Or train your own 🏋️
+
+To fit an SAE to your own data instead, create one and train it, then pass `my_sae` in place of `sae` in the steps
+below. `TrainingConfig` defaults follow the paper: Adam with learning rate 5 × 10⁻⁴, batches of 512, 100 epochs,
+query reconstruction weight 0.1, and validation NDCG@10 on the full corpus every 100 steps to keep the best
+checkpoint, which is also written to `output_dir` at every improvement. The paper picks the InfoNCE weight λ in
+{0, 5 × 10⁻⁶, 10⁻⁵} and the temperature τ in {0.01, 0.05, 0.1} per k on validation NDCG@10; the defaults
+λ = 10⁻⁵ and τ = 0.05 are one point of that grid.
 
 ```python
 import torch
 
-from doctosae import DoctoSAE, load_pretrained
+from doctosae import DoctoSAE, Trainer, TrainingConfig
 
-pretrained = load_pretrained("bge", k=64)  # doctolib-lab/doctosae-bge-large-en-v1.5/k64_m3072
-
-# A new SAE with m = 3d features and k = 64 active ones, the setting of Tables 2 and 3 of the paper
-torch.manual_seed(42)                   # reproducible initial weights
-sae = DoctoSAE(d_in=data.dim, n_latents=3 * data.dim, k=64, embedder=data.embedder)
-```
-
-#### 4️⃣ Train it 🏋️
-
-`TrainingConfig` defaults follow the paper: Adam with learning rate 5 × 10⁻⁴, batches of 512, 100 epochs, query
-reconstruction weight 0.1, and validation NDCG@10 on the full corpus every 100 steps to keep the best checkpoint,
-which is also written to `output_dir` at every improvement. The paper picks the InfoNCE weight λ in {0, 5 × 10⁻⁶,
-10⁻⁵} and the temperature τ in {0.01, 0.05, 0.1} per k on validation NDCG@10; the defaults λ = 10⁻⁵ and τ = 0.05
-are one point of that grid.
-
-```python
-from doctosae import Trainer, TrainingConfig
-
-trainer = Trainer(sae, TrainingConfig(), output_dir="runs/nfcorpus/sae").fit(data)
-sae = trainer.best_model
+# m = 3d features and k = 64 active ones, the setting of Tables 2 and 3 of the paper
+torch.manual_seed(42)  # reproducible initial weights
+my_sae = DoctoSAE(d_in=data.dim, n_latents=3 * data.dim, k=64, embedder=data.embedder)
+my_sae = Trainer(my_sae, TrainingConfig(), output_dir="runs/nfcorpus/sae").fit(data).best_model
 ```
 
 #### 5️⃣ Evaluate retrieval 🎯
 
 `evaluate` ranks the whole corpus for every query by cosine similarity and computes NDCG@10 exactly as the paper
-does. Pass `None` instead of an SAE to score the original dense embeddings.
+does. Pass `None` instead of an SAE to score the original dense embeddings. NFCorpus is out of domain for a
+checkpoint trained on CURE, and the scores match Table 1 of the paper (38.17 dense, 35.61 for k = 256).
 
 ```python
 from doctosae import evaluate
 
-print(evaluate(None, data, split="test"))  # original embeddings
-print(evaluate(sae, data, split="test"))   # sparse codes: ndcg@10, recall@100, mrr@10, n_queries
+print(evaluate(None, data, split="test"))  # original embeddings: ndcg@10 0.382
+print(evaluate(sae, data, split="test"))   # sparse codes: ndcg@10 0.357, plus recall@100, mrr@10, n_queries
 ```
 
 #### 6️⃣ Interpret the features 🔍
@@ -189,20 +193,25 @@ print(interpreter.explain(query, doc_a, doc_b, cards=cards))
 Every step has a command, and every command maps to the Python API above (`doctosae <command> --help` names the
 function it calls).
 
+`--sae` takes a folder or a Hub checkpoint id, so the commands below start from the pretrained BGE checkpoint.
+
 ```bash
 doctosae datasets                                  # list the registered benchmarks
-doctosae embed --dataset nfcorpus --model BAAI/bge-small-en-v1.5 --output runs/nfcorpus/embeddings
-doctosae train --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --k 32 --output-dir runs/nfcorpus/sae
-doctosae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings                          # dense
-doctosae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae  # sparse
-doctosae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \
+doctosae pretrained                                # list the checkpoints of the paper on the Hub
+SAE=doctolib-lab/doctosae-bge-large-en-v1.5/k256_m3072
+doctosae embed --dataset nfcorpus --sae $SAE --output runs/nfcorpus/embeddings   # the encoder of the checkpoint
+doctosae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings              # dense
+doctosae evaluate --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae $SAE   # sparse
+doctosae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae $SAE \
     --output runs/nfcorpus/features --n-features 20
-doctosae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \
+doctosae interpret --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae $SAE \
     --output runs/nfcorpus/features --n-features 20 --llm openai --llm-model MODEL \
     --base-url http://localhost:8000/v1 --score --score-on r2med_biology   # LLM labels, scored out of domain
-doctosae explain --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae runs/nfcorpus/sae \
+doctosae explain --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --sae $SAE \
     --cards runs/nfcorpus/features/cards.json --query "..." --doc-a "..." --doc-b "..."
-doctosae pretrained --embedder bge --k 64          # id of a pretrained checkpoint
+
+# Train your own SAE on the same embeddings, then pass --sae runs/nfcorpus/sae to the commands above
+doctosae train --dataset nfcorpus --embeddings runs/nfcorpus/embeddings --k 64 --output-dir runs/nfcorpus/sae
 doctosae convert runs/paper/bge_k64 checkpoints/bge-k64 --embedder bge   # paper checkpoint to DoctoSAE folder
 doctosae push checkpoints/bge-k64 my-org/doctosae-bge-k64 --license cc-by-nc-4.0   # private unless --public
 ```

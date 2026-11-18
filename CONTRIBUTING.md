@@ -51,26 +51,49 @@ pull request description.
 
 ## Releasing (maintainers)
 
-Preconditions of the first release, all of them:
+[`doctosae`](https://pypi.org/project/doctosae/) is built and uploaded to PyPI from a maintainer's machine. The
+`Publish` workflow is kept for the day Trusted Publishing can be enabled for the organisation, but it does not run
+today. Every step needs [uv](https://docs.astral.sh/uv/).
 
-* The ML4H 2026 decision allows the authors to be named. A GitHub release triggers the `Publish` workflow, and a
-  manual run of it uploads to TestPyPI: both indexes are public, an uploaded file can never be replaced, and the
-  package README names the authors next to the paper title. Until then, create no release and run no `Publish`
-  workflow, TestPyPI included; the safest gate is to register the trusted publishers on PyPI and TestPyPI only
-  then, and to add required reviewers to the `pypi` and `testpypi` GitHub environments.
-* The repository is public. The PyPI page loads its figure from raw.githubusercontent.com and links to GitHub,
-  which serve nothing of a private repository.
-* The first upload happens when the repository becomes public, before any announcement: a pending trusted
-  publisher does not reserve the name `doctosae`. Then drop the "not on PyPI yet" note of the README and show the
-  PyPI badges again.
-* Only the `Publish` workflow uploads, from a clean checkout. Never upload a distribution built locally: a local
-  build packs whatever sits in `package/examples` or `package/tests`. The dry run stays local: `python -m build`,
-  then `twine check --strict dist/*`.
-* Checkpoints trained on CURE stay private (`doctosae push` without `--public`) until Legal confirms that they may
-  be published: the CURE license excludes training models that may be used commercially.
+1. Bump `__version__` in `package/src/doctosae/__init__.py` and `version` in `CITATION.cff`, and merge to `main`.
+   PyPI takes each version once: a file can never be replaced, even after it is deleted.
+2. Build from a fresh clone of `main`, never from a working copy: a local build packs whatever sits in
+   `package/examples` or `package/tests`, run outputs included.
 
-Then:
+   ```bash
+   RELEASE=$(mktemp -d) && git clone --depth 1 https://github.com/doctolib-lab/doctosae.git "$RELEASE/doctosae"
+   cd "$RELEASE/doctosae/package"
+   uv build --out-dir dist
+   uvx twine check --strict dist/*
+   ```
 
-1. Bump `__version__` in `package/src/doctosae/__init__.py` and `version` in `CITATION.cff`.
-2. Merge to `main`, then create a GitHub release whose tag is `v<version>` (for example `v0.1.1`).
-3. The `Publish` workflow builds the package and uploads it to PyPI through Trusted Publishing.
+3. Check the wheel in an empty environment, then run the offline tests against it:
+
+   ```bash
+   uv run --isolated --no-project --with dist/*.whl doctosae --version
+   uv run --isolated --no-project --with dist/*.whl --with pytest pytest -m "not network" -p no:cacheprovider
+   ```
+
+4. Upload with a PyPI API token scoped to the `doctosae` project (pypi.org, Account settings, API tokens). twine
+   asks for it, or reads it from a `[pypi]` section of `~/.pypirc` with `username = __token__`. Never commit the
+   token or paste it anywhere else.
+
+   ```bash
+   uvx twine upload dist/*
+   ```
+
+   To rehearse first, upload to TestPyPI with a token of a test.pypi.org account, a separate account:
+   `uvx twine upload --repository-url https://test.pypi.org/legacy/ dist/*`.
+
+5. Check the release from PyPI in an empty environment, then tag the commit it was built from:
+
+   ```bash
+   uv run --isolated --no-project --refresh-package doctosae --with "doctosae==<version>" doctosae --version
+   git tag v<version> && git push origin v<version>
+   ```
+
+   Push the tag only, without a GitHub release: a release starts the `Publish` workflow, which would try to upload
+   the same version again.
+
+Checkpoints trained on CURE are pushed private first (`doctosae push` without `--public`) and made public only
+once Legal confirms they may be: the CURE license excludes training models that may be used commercially.
