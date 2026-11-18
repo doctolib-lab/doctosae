@@ -1,3 +1,11 @@
+[![Downloads](https://static.pepy.tech/badge/doctosae)](https://pepy.tech/projects/doctosae)
+[![PyPI Version](https://img.shields.io/pypi/v/doctosae)](https://pypi.org/project/doctosae/)
+[![Python Version](https://img.shields.io/pypi/pyversions/doctosae)](https://pypi.org/project/doctosae/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-checkpoints-yellow)](https://huggingface.co/collections/doctolib-lab/doctosae)
+[![arXiv](https://img.shields.io/badge/arXiv-2611.18179-b31b1b.svg?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2611.18179)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/doctolib-lab/doctosae/blob/main/package/examples/doctosae_colab.ipynb)
+
 # DoctoSAE
 
 **Sparse autoencoders for interpretable and transferable medical retrieval.** Reference implementation of the ML4H

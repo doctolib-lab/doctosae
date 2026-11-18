@@ -1,9 +1,13 @@
-[![PyPI](https://img.shields.io/pypi/v/doctosae.svg)](https://pypi.org/project/doctosae/)
-[![Python](https://img.shields.io/pypi/pyversions/doctosae.svg)](https://pypi.org/project/doctosae/)
+[![Downloads](https://static.pepy.tech/badge/doctosae)](https://pepy.tech/projects/doctosae)
+[![Downloads per month](https://static.pepy.tech/badge/doctosae/month)](https://pepy.tech/projects/doctosae)
+[![PyPI Version](https://img.shields.io/pypi/v/doctosae)](https://pypi.org/project/doctosae/)
+[![Python Version](https://img.shields.io/pypi/pyversions/doctosae)](https://pypi.org/project/doctosae/)
+[![Code Style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-[![Paper](https://img.shields.io/badge/arXiv-2611.18179-b31b1b.svg?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2611.18179)
-[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-doctolib--lab-yellow)](https://huggingface.co/doctolib-lab)
-[![CI](https://github.com/doctolib-lab/doctosae/actions/workflows/ci.yml/badge.svg)](https://github.com/doctolib-lab/doctosae/actions/workflows/ci.yml)
+![Code Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-checkpoints-yellow)](https://huggingface.co/collections/doctolib-lab/doctosae)
+[![arXiv](https://img.shields.io/badge/arXiv-2611.18179-b31b1b.svg?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2611.18179)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/doctolib-lab/doctosae/blob/main/package/examples/doctosae_colab.ipynb)
 
 
 
@@ -22,6 +26,17 @@ top snippets, TF IDF terms and a topic written by an Interpreter LLM. Trained on
 domain retrieval over the original embeddings and lose less than their dense counterparts out of domain,
 especially on corpora far from the training one. Descriptions built on CURE alone still predict where a feature
 fires on five unseen corpora, and they explain single retrievals: which concepts made one passage outrank another.
+
+### Colab tour (give it a try) 🧪
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/doctolib-lab/doctosae/blob/main/package/examples/doctosae_colab.ipynb)
+
+About 10 minutes on a free GPU, from `pip install doctosae` to explained retrievals on NFCorpus:
+
+* load the pretrained checkpoint `k256_m3072` from the Hub and look inside its sparse codes
+* evaluate retrieval out of domain, next to Table 1 of the paper
+* read feature cards, explain why one passage outranks another, and search with your own question
+* train your own DoctoSAE with the objective of the paper
 
 ### Repository layout 🗂️
 
