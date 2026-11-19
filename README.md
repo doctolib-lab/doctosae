@@ -1,5 +1,4 @@
 [![Downloads](https://static.pepy.tech/badge/doctosae)](https://pepy.tech/projects/doctosae)
-[![Downloads per month](https://static.pepy.tech/badge/doctosae/month)](https://pepy.tech/projects/doctosae)
 [![PyPI Version](https://img.shields.io/pypi/v/doctosae)](https://pypi.org/project/doctosae/)
 [![Python Version](https://img.shields.io/pypi/pyversions/doctosae)](https://pypi.org/project/doctosae/)
 [![Code Style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
